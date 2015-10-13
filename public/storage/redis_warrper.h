@@ -19,7 +19,7 @@ typedef struct warrper_redis_reply_t{
 
 
 char* RedisConnections(warrper_redis_context_t** context ,
-					const char* host,const int port);
+					const char* host,const int port,const char* pwd);
 
 int RedisAddValue(warrper_redis_context_t* context,
 				const char* key,const size_t key_len,

@@ -89,7 +89,7 @@ bool PushDBComm::GetAllPushMessage(std::list<base_push::BaiduPushMessage*>& list
 		return false;
 	}
 
-    //call proc_GetAllPushMessage();
+    //call bc.proc_GetAllPushMessage();
 	os<<"call proc_GetAllPushMessage();";
 	std::string sql = os.str();
 	LOG_DEBUG2("[%s]", sql.c_str());

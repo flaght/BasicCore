@@ -19,11 +19,11 @@
 #include <string.h>
 #include <signal.h>
 #include <sys/resource.h>
-//#include "client/linux/handler/exception_handler.h"
+#include "client/linux/handler/exception_handler.h"
 
 static struct server *srvt = NULL;
 
-/*
+
 static bool DumpCallBack(const char* dump_path,const char* minidump_id,
 						 void* contect,bool succeeded){
 
@@ -31,7 +31,7 @@ static bool DumpCallBack(const char* dump_path,const char* minidump_id,
 
 	return succeeded;
 }
-*/
+
 static struct server* server_init(void){
 
 	struct server  *srv; 
@@ -264,6 +264,7 @@ static int set_ulimit(){
 __attribute__((visibility("default")))
 int core_main(int agrc,char* argv[]){
     
+    google_breakpad::ExceptionHandler eh(".",NULL,DumpCallBack,NULL,true);
 	if ((srvt=server_init())==NULL){
 	    MIG_ERROR(USER_LEVEL,"server_init error[%s]",strerror(errno));
 		return -1;

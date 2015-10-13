@@ -28,6 +28,14 @@ static int sock_conn_count = 0;
 static int adapter_count = 0;
 static int block_count = 0;
 static struct sock_adapter* conn_head = NULL;
+
+#if defined HEAD_SHORT
+#define HEAD_LEN  2
+#elif defined HEAD_BIG
+#define HEAD_LEN  8
+#else
+#define HEAD_LEN 4
+#endif
 enum PACKET_STATE{
     STATE_NEW = 0,
     STATE_READ_HEADER,
@@ -144,10 +152,11 @@ static inline struct echo_block *echo_block_alloc(struct echo_conn *conn,
                          struct server *srv){
 
     struct echo_block *block;
-    char *addr = (char*)malloc(6);
+    char *addr = (char*)malloc(4096);
     if(addr==NULL)
         return NULL;
 
+    memset(addr,'\0',4096);
     block = (struct echo_block *)malloc(sizeof(*block));
     if(block==NULL){
         free(addr);
@@ -158,7 +167,7 @@ static inline struct echo_block *echo_block_alloc(struct echo_conn *conn,
     assert(block_count>=0);
     __sync_fetch_and_add(&block_count,1);
     block->address = addr;
-    block->length = 6;
+    block->length = 4096;
     block->refcount = 0;
     
     return block;
@@ -269,7 +278,18 @@ int echo_post_recv(struct echo_conn *conn,int status,struct server *srv){
         echo_block_addref(conn->block);
     }
 
-	sc->psc_rx_size = conn->block->length - conn->offset;
+  
+    
+	if(sc->psc_rx_state==STATE_NEW){
+	    sc->psc_rx_size = sc->psc_rx_nob_left;
+	    //assert(sizeof(int)==HEAD_LEN);
+	 }    else if(sc->psc_rx_state==STATE_READ_HEADER){
+        if(conn->block->length-conn->offset<=sc->psc_rx_nob_left)
+            sc->psc_rx_size = conn->block->length-conn->offset;
+        else
+            sc->psc_rx_size = sc->psc_rx_nob_left;
+    }
+    //sc->psc_rx_size = conn->block->length - conn->offset;
     sc->psc_rx_buffer = conn->block->address + conn->offset;
     return status;
 }
@@ -375,8 +395,6 @@ void echo_handle_packet(struct echo_packet *packet,struct server *srv) {
 			echo_block_decref(block,srv);
         }
     }
-
-	//MIG_INFO(USER_LEVEL,"[%d] %s",pack_buff->buf->used-1,pack_buff->buf->ptr);
     srv->system_addtask(srv,PACKET,pack_buff);
     list_del(&packet->list);
     echo_packet_free(packet,srv);
@@ -386,68 +404,79 @@ int echo_forward(void *privates,int length,struct server *srv)
 {
     struct echo_conn *conn = (struct echo_conn*)privates;
     struct echo_block *block = conn->block;
-    char *ptr =block->address + conn->offset;
+    char *ptr =block->address+conn->offset;
     char *p = ptr;
-    char *tail = ptr + length;
+    char *tail = ptr+length;
     int len,status = 0;
     struct psock_conn *spconn = (struct psock_conn*)conn->privates;
     struct echo_packet *packet = conn->packet;
-    conn->offset += length;
+    conn->offset+=length;
     assert(conn->offset<=block->length);
-
-	while(1) {
-		while (p < tail && *p != '\n') {
-			if (*p == 0)
-				printf("recv an error char: 0\n");
-			p++;
-		}
-
-		if (*p != '\n' && conn->offset < block->length) {
-			/* do nothing */
-			break;
-		}
-      else {
-      struct echo_packet *packet = conn->packet;
-      if (packet == NULL) {
+    if(packet==NULL){
         packet = echo_packet_alloc(conn,srv);
-        if (packet == NULL) {
-          return -ENOMEM;
+        if(packet==NULL){
+            return -ENOMEM;
         }
         conn->packet = packet;
-      }
+    }
 
-			// a whole block
-			if (*p== '\n'){
-			     len = ++p - block->address - conn->prev_packet_offset;
-			     ptr = p;
+    while(1){
+        if(p==tail)
+            break;
+        if((length!=spconn->psc_rx_size)&&(spconn->psc_rx_state==STATE_NEW)){
+            spconn->psc_rx_nob_left = spconn->psc_rx_size - length;
+            status = -EAGAIN;
+            break;
+        }else if(spconn->psc_rx_state==STATE_NEW){
+           spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
+           spconn->psc_rx_nob_left = spconn->psc_rx_nob_wanted - HEAD_LEN;
+           spconn->psc_rx_state = STATE_READ_HEADER;
+           break;
+        }else if(spconn->psc_rx_state==STATE_READ_HEADER){
+           spconn->psc_rx_nob_left -= length;
+           if(spconn->psc_rx_nob_left!=0){
+                break;
+           }
+        }else{
+        	MIG_LOG(SYSTEM_LEVEL,"packet_state error\n");
+            break;
+        }
+        
+        len = tail - block->address - conn->prev_packet_offset;
+        block_add_tail(packet,block,conn->prev_packet_offset,len);
+        conn->prev_packet_offset+=len;
+       
+        pthread_mutex_lock(&conn->lock);
+        list_add_tail(&packet->list,&conn->inflight_packets);
+        pthread_mutex_unlock(&conn->lock);
+        
+        conn->packet = NULL;
+        p = p+length;
+        packet->srv=srv;
+        packet->type = ((struct sock_adapter *)(spconn->psc_adapter))->type;
+        packet->sock = ((struct sock_adapter *)(spconn->psc_adapter))->sock;
+        echo_handle_packet(packet,srv);
+        spconn->psc_rx_state = STATE_NEW;
+        spconn->psc_rx_nob_wanted = spconn->psc_rx_nob_left = HEAD_LEN;
+        if(conn->offset+HEAD_LEN>block->length){
+            assert(conn->offset+HEAD_LEN>block->length);
+            conn->prev_packet_offset = 0;
+            conn->offset = 0;
+            echo_block_decref(block,srv);
+            conn->block = NULL;
+        }     
+    }
 
-			     block_add_tail(packet, block, conn->prev_packet_offset, len);
-			     conn->prev_packet_offset += len;
-
-			     list_add_tail(&packet->list, &conn->inflight_packets);
-			     conn->packet = NULL;
-				 packet->srv=srv;
-				 packet->type = ((struct sock_adapter *)(spconn->psc_adapter))->type;
-				 packet->sock = ((struct sock_adapter *)(spconn->psc_adapter))->sock;
-			     echo_handle_packet(packet,srv);
-			}else{
-				assert(conn->offset == block->length);
-
-				status = -EAGAIN;
-
-				len = block->length - conn->prev_packet_offset;
-				block_add_tail(packet, block, conn->prev_packet_offset, len);
-
-				conn->prev_packet_offset = 0;
-				conn->offset = 0;
-				echo_block_decref(block,srv);
-				conn->block = NULL;
-				break;
-			}
-		}
-
-	}
-
+    if(conn->offset==block->length){
+        assert(conn->offset == block->length);
+        status = -EAGAIN;
+        len = block->length-conn->prev_packet_offset;
+        block_add_tail(packet,block,conn->prev_packet_offset,len);
+        conn->prev_packet_offset = 0;
+        conn->offset = 0;
+        echo_block_decref(block,srv);
+        conn->block = NULL;
+    }
     return echo_post_recv(conn,status,srv);
 }
 
@@ -508,9 +537,9 @@ int sockbase_receive(struct psock_conn *conn){
     int rc,err=0;
     for(;;){
         rc = recv(conn->psc_sock,conn->psc_rx_buffer,conn->psc_rx_size,0);
-//    		if (rc>0)
-//    			MIG_DEBUG(USER_LEVEL,"conn->psc_rx_size[%d] [%s] rc[%d]",conn->psc_rx_size,
-//    			      conn->psc_rx_buffer,rc);
+        /*if (rc>0)
+            MIG_DEBUG(USER_LEVEL,"conn->psc_rx_size[%d] [%s] rc[%d]",conn->psc_rx_size,
+    			      conn->psc_rx_buffer,rc);*/
         if(rc>0){
             conn->psc_rx_started = 1;
             conn->psc_rx_deadline = time(NULL)+5;
@@ -532,7 +561,8 @@ int sockbase_receive(struct psock_conn *conn){
 }
 
 
-int sockbase_process_receive(struct psock_conn *conn,struct server *srv){
+int sockbase_process_receive(struct psock_conn *conn,struct server *srv)
+{
     int rc;
 again:
 
@@ -712,46 +742,13 @@ void server_write_buffer(int fd, short which, void *arg) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
-
-//临时解决方案 //外连socket 单独创建 。但不接受数据处理，除非数据格式和监听socket 一样
-
-static int create_connect_socket(){
+static int  create_socket(){
     int sock;
     struct sockaddr_in sai;
     int rc,opt;
     sock =socket(AF_INET,SOCK_STREAM,0);
 
-	if(sock<0){
-        MIG_ERROR(USER_LEVEL,"unable to create server socket[%d]]\n",errno);
-        return 0;
-    }
-    opt = 1;
-    rc = setsockopt(sock,SOL_SOCKET,SO_KEEPALIVE,&opt,sizeof(opt));
-    if(rc!=0){
-        MIG_ERROR(USER_LEVEL,"unable to set SO_KEEPALIVE on server socket%d\n",errno);
-        close(sock);
-        return 0;
-    }
-    rc = setsockopt(sock,SOL_SOCKET,SO_REUSEADDR,&opt,sizeof(opt));
-    if(rc!=0){
-        MIG_ERROR(USER_LEVEL,"unable to set SO_REUSEADDR on servert socket:%d\n",errno);
-        return 0;
-    }
-    return sock;
-}
 
-static int  create_socket(){ // 0 net_work  1,process_work
-    int sock;
-    struct sockaddr_in sai;
-    int rc,opt;
-
-#if defined (NET_WORK)
-    sock =socket(AF_INET,SOCK_STREAM,0);
-#endif
-
-#if defined (PROCESS_WORK)
-	sock =socket(AF_UNIX,SOCK_STREAM,0);
-#endif
 	if(sock<0){
         MIG_ERROR(USER_LEVEL,"unable to create server socket[%d]]\n",errno);
         return 0;
@@ -793,7 +790,7 @@ struct sock_adapter* create_connect_socket(struct server* srv,
     
     conn->ip = buffer_init_string(host);
     
-    sock = create_connect_socket();
+    sock = create_socket();
     opt = 1;
     sai.sin_family = AF_INET;
     sai.sin_port = htons(atoi(port));
@@ -808,18 +805,18 @@ struct sock_adapter* create_connect_socket(struct server* srv,
 
     rc = connect(sock,(const struct sockaddr *)&sai,sizeof(sai));
     if(rc!=0){
-        MIG_ERROR(USER_LEVEL,"connect error (%d)  (%s)\n",errno,strerror(errno));
+        MIG_ERROR(USER_LEVEL,"connect error (%d)\n",errno);
         free_sock_adapter(conn,srv);
         close(sock);
         return NULL;
     }
     
-    plugins_call_connection_srv(srv,sock,(void*)host,atoi(port));
+    plugins_call_connection_srv(srv,sock,(void*)host,strlen(host));
 
     sc->psc_sock = sock;
     sc->psc_scheduler = &srv->one_scheduler;
     sc->psc_adapter = conn;
-    sc->psc_rx_nob_left = sc->psc_rx_nob_wanted =-1;
+    sc->psc_rx_nob_left = sc->psc_rx_nob_wanted =HEAD_LEN;
     sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
     
     if(sc->psc_cookie==NULL){
@@ -876,28 +873,18 @@ struct sock_adapter* create_connect_socket(struct server* srv,
     return conn; 
 }
 
-#if defined (NET_WORK)
 struct sock_adapter *create_listen_socket(struct server* srv,int port){
-#endif
-#if defined (PROCESS_WORK)
-struct sock_adapter *create_listen_socket(struct server* srv,const char* path){
-#endif
+
+
 
     struct sock_adapter* sa = NULL;
-#if defined (NET_WORK)
     struct sockaddr_in sai;
-#endif
-
-#if defined (PROCESS_WORK)
-    struct sockaddr_un sai;
-#endif
 
     int rc,opt;
     int sock;
 	struct stat tstat;
-#if defined (NET_WORK)
     assert(port>0&&port<65536);
-#endif
+
     sa = alloc_sock_adapter(srv);
     if(sa==NULL){
         MIG_ERROR(USER_LEVEL,"alloc sock adapter failed");
@@ -911,21 +898,12 @@ struct sock_adapter *create_listen_socket(struct server* srv,const char* path){
     sa->type = 0;
     sock = create_socket();
     opt = 1;
-#if defined (NET_WORK)
     sai.sin_family = AF_INET;
     sai.sin_port = htons(port);
     sai.sin_addr.s_addr = 0;
-#endif
 
-#if defined (PROCESS_WORK)
-	if(lstat(path,&tstat)==0){
-		if(S_ISSOCK(tstat.st_mode))
-			unlink(path);
-	}
-	sai.sun_family = AF_UNIX;
-	memset(sai.sun_path,'\0',sizeof(sai.sun_path));
-	strncpy(sai.sun_path,path,strlen(path));
-#endif
+
+
 
     rc = bind(sock,(const struct sockaddr *)&sai,sizeof(sai));
     if(rc!=0){
@@ -943,10 +921,6 @@ struct sock_adapter *create_listen_socket(struct server* srv,const char* path){
         return NULL;
     }
 
-	int err = chmod(path,0777);
-	if (err<0){
-	    MIG_ERROR(USER_LEVEL,"=====chmod error %s=========",strerror(errno));
-	}
     //set socket no-block
     opt = fcntl(sock,F_GETFL,0);
     rc = fcntl(sock,F_SETFL,opt|O_NONBLOCK);
@@ -1012,7 +986,8 @@ void server_accept(int fd,short which,void *arg){
     sc->psc_sock = sock;
     sc->psc_scheduler = &srv->one_scheduler;
     sc->psc_adapter = conn;
-	sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+    //sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+    sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = HEAD_LEN;
     sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
 
     if(sc->psc_cookie==NULL){
@@ -1112,13 +1087,10 @@ int network_register_fdevents(struct server *srv)
         MIG_ERROR(USER_LEVEL,"event_init failed\n");
         return -1;
     }
-#if defined (NET_WORK)
-    srv->sa = create_listen_socket(srv,atoi(srv->srv_conf.port->ptr));
-#endif
 
-#if defined (PROCESS_WORK)
-	srv->sa = create_listen_socket(srv,srv->srv_conf.process_path->ptr);
-#endif
+    srv->sa = create_listen_socket(srv,atoi(srv->srv_conf.port->ptr));
+
+
 
     if(srv->sa==NULL){
         return -1;
@@ -1161,8 +1133,6 @@ int create_reconnects(struct server *srv){
     struct sock_adapter* tmp_sa = NULL;
     int n =srv->ncount_connect;
     int index = 0;
-    if(srv==NULL)
-    	return 0;
     if(list_empty(&srv->srv_conf.remotes)){
     	 MIG_ERROR(USER_LEVEL,"srv->srv_conf.remotes empty");
          return 0;
@@ -1221,8 +1191,6 @@ int register_event(struct server *srv,int fd,short events){
 	struct sock_adapter* conn = NULL;
 	int rc;
 	int flags;
-	if(srv==NULL)
-		return 0;
 	conn = alloc_sock_adapter(srv);
 	if(conn==NULL){
 	    MIG_ERROR(USER_LEVEL,"alloc sock adapter failed");
@@ -1239,6 +1207,7 @@ int register_event(struct server *srv,int fd,short events){
 	sc->psc_sock = fd;
 	sc->psc_scheduler = &srv->one_scheduler;
 	sc->psc_adapter = conn;
+	sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = HEAD_LEN;
 	sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
 
 	if(sc->psc_cookie==NULL){

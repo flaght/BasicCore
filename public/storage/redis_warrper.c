@@ -1,8 +1,10 @@
 #include "redis_warrper.h"
 char* RedisConnections(warrper_redis_context_t** context ,
-				const char* host,const int port){
+				const char* host,const int port,const char* pwd){
 	struct timeval timeout = {1,500000};
 	(*context)->context = redisConnectWithTimeout(host,port,timeout);
+	if(pwd != NULL && strlen(pwd) > 0)
+	    redisCommand((*context)->context,"auth %s",pwd);
 	if((*context)->context->err)
 		return (*context)->context->errstr;
 	return NULL;

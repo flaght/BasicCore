@@ -27,6 +27,7 @@ public:
 		,buffer_length_(len)
 		,auto_delete_(auto_delete){
 			buffer_ = (char*)malloc(buffer_length_);
+			memset(buffer_,'0',buffer_length_);
 			if (buffer_==NULL)
 				buffer_length_ = 0;
 			Reset();
@@ -92,7 +93,7 @@ class DataInPacket{
 public:
 	DataInPacket(const char* d,int32 n){
 		cursor_ = data_ =const_cast<char*>(d);
-		data_len_ = n;
+		init_len_ = data_len_ = n;
 	}
 
 	DataInPacket &operator >>(int8 &b);
@@ -103,6 +104,14 @@ public:
 	DataInPacket &operator >>(char* str);
 	DataInPacket &operator >>(std::string& str);
 	DataInPacket &operator >>(bool &b);
+
+	char* GetCursor() const {return cursor_;}
+	int32 GetDataLen() const {return data_len_;}
+
+    void Reset(){
+        cursor_ = data_;
+        data_len_ = init_len_;
+    }
 
 	int8 Read8();
 	int64 Read64();
@@ -121,6 +130,7 @@ protected:
 	char* data_;
 	char* cursor_;
 	int32 data_len_;
+	int32 init_len_;
 };
 }
 #endif

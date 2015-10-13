@@ -25,10 +25,10 @@ bool RedisStorageEngineImpl::Connections(std::list<base::ConnAddr>& addrlist){
 	std::list<base::ConnAddr>::iterator it = addrlist.begin();
 	while(it!=addrlist.end()){
 		addr = (*it);
-		str = RedisConnections(&c_,addr.host().c_str(),addr.port());
+		str = RedisConnections(&c_,addr.host().c_str(),addr.port(),addr.pwd().c_str());
                 MIG_INFO(USER_LEVEL,"redis ip[%s] port[%d]",addr.host().c_str(),
                          addr.port());
-		if(str!=NULL){ //���Ӵ��� ֪ͨ���ߵ�
+		if(str!=NULL){ //
 			MIG_INFO(USER_LEVEL,"Redis Conntions error %s",str);
 			return false;
 		}
@@ -281,7 +281,7 @@ bool RedisStorageEngineImpl::GetAllHash(const char* hash_name,
    int n;
    warrper_redis_reply_t* rp = NULL;
    rp = RedisGetAllHash(c_,hash_name,hash_name_len,&pptr,&n);
-   for (r = 0; r<(n/2); r++){
+   for (r = 0; r<n; r+=2){
 	   std::string key;
 	   std::string value;
 	   if ((pptr[r]==NULL)||(pptr[r+1]==NULL))

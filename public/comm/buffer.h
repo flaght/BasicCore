@@ -9,8 +9,6 @@
 #include <cassert>
 #include <cstdio>
 #include <algorithm>
-#include <stdio.h>
-#include <string.h>
 
 ////////////////////////////////////////////////////////////////////////////////
 //******************************************************************************
@@ -74,7 +72,7 @@ protected:
 
 public:
 	cyc_buf(size_t size=255) {
-		++size; // ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½Ä©Î²ï¿½ï¿½ÒªÒ»ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½
+		++size; // »·ÐÎ»º³åÇøÄ©Î²ÐèÒªÒ»¸ö¿Õ×Ö½Ú
 		size = DWORDAlign(size);
 		_total = size;
 		_data = new char[_total];
@@ -102,7 +100,7 @@ public:
 	}
 
 	bool reserve(size_t n) {
-		++n; // ï¿½ï¿½ï¿½Î»ï¿½ï¿½ï¿½ï¿½ï¿½Ä©Î²ï¿½ï¿½ÒªÒ»ï¿½ï¿½ï¿½ï¿½ï¿½Ö½ï¿½
+		++n; // »·ÐÎ»º³åÇøÄ©Î²ÐèÒªÒ»¸ö¿Õ×Ö½Ú
 		n = DWORDAlign(n);
 
 		if (any_locked()) { return false; }
