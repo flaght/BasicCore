@@ -92,9 +92,9 @@ static void XMLCALL OnConfigStart(void* usrData,const char* name,const char** at
         else if(strcmp(name,mssql)==0)
         	file_config->mssql_db_list_.push_back(addr);
 
-        MIG_INFO(USER_LEVEL,"config name[%s] ip[%s] port[%d] user[%s] pass[%s] db[%s]",
+        /*MIG_INFO(USER_LEVEL,"config name[%s] ip[%s] port[%d] user[%s] pass[%s] db[%s]",
                  name,shost.c_str(),atoi(sport.c_str()),suser.c_str(),spass.c_str(),
-                 sname.c_str());
+                 sname.c_str());*/
     }else if(config_flag&&cached_flag&&
     	(strcmp(name,redis))==0||(memcached_flag&&strcmp(name,config)==0)){
         for(i = 0;atts[i]!=0;i+=2){
@@ -111,8 +111,8 @@ static void XMLCALL OnConfigStart(void* usrData,const char* name,const char** at
         }
         base::ConnAddr addr(shost.c_str(),atoi(sport.c_str()),
             suser.c_str(),spass.c_str(),sname.c_str());
-        MIG_INFO(USER_LEVEL,"config name[%s] ip[%s] port[%d]",
-                 name,shost.c_str(),atoi(sport.c_str()));
+        /*MIG_INFO(USER_LEVEL,"config name[%s] ip[%s] port[%d]",
+                 name,shost.c_str(),atoi(sport.c_str()));*/
         if(strcmp(name,redis)==0)
             file_config->redis_list_.push_back(addr);
         else

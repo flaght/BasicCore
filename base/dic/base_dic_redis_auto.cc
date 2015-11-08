@@ -38,8 +38,8 @@ void RedisPool::Init(std::list<base::ConnAddr>& addrlist,const int32 conn_num){
 			assert(0);
 			continue;
 		}
-		MIG_DEBUG(USER_LEVEL, "ip:%s,port:%d", addrlist_.front().host().c_str(),
-				addrlist_.front().port());
+		/*MIG_DEBUG(USER_LEVEL, "ip:%s,port:%d", addrlist_.front().host().c_str(),
+				addrlist_.front().port());*/
 		bool r =  engine->Connections(addrlist_);
 		if (!r)
 			continue;

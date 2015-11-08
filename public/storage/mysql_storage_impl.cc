@@ -33,9 +33,9 @@ bool MysqlStorageEngineImpl::Connections(std::list<base::ConnAddr>& addrlist){
     	}
         
         //mysql_set_character_set(&mysql,"gbk");
-        MIG_INFO(USER_LEVEL,"mysql ip[%s] port[%d] user[%s] pwd[%s] db[%s]",
+        /*MIG_INFO(USER_LEVEL,"mysql ip[%s] port[%d] user[%s] pwd[%s] db[%s]",
                 addr.host().c_str(),addr.port(),addr.usr().c_str(),
-                addr.pwd().c_str(),addr.source().c_str());
+                addr.pwd().c_str(),addr.source().c_str());*/
     	break;
     }
     mysql_set_server_option(mysql, MYSQL_OPTION_MULTI_STATEMENTS_ON);

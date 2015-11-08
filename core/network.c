@@ -429,6 +429,7 @@ int echo_forward(void *privates,int length,struct server *srv)
             break;
         }else if(spconn->psc_rx_state==STATE_NEW){
            spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
+           //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_wanted[%d]",spconn->psc_rx_nob_wanted);
            spconn->psc_rx_nob_left = spconn->psc_rx_nob_wanted - HEAD_LEN;
            spconn->psc_rx_state = STATE_READ_HEADER;
            break;

@@ -26,8 +26,8 @@ bool RedisStorageEngineImpl::Connections(std::list<base::ConnAddr>& addrlist){
 	while(it!=addrlist.end()){
 		addr = (*it);
 		str = RedisConnections(&c_,addr.host().c_str(),addr.port(),addr.pwd().c_str());
-                MIG_INFO(USER_LEVEL,"redis ip[%s] port[%d]",addr.host().c_str(),
-                         addr.port());
+        /*MIG_INFO(USER_LEVEL,"redis ip[%s] port[%d]",addr.host().c_str(),
+                         addr.port());*/
 		if(str!=NULL){ //
 			MIG_INFO(USER_LEVEL,"Redis Conntions error %s",str);
 			return false;

@@ -67,6 +67,16 @@ Value* Value::CreateBooleanValue(bool in_value){
 }
 
 //static
+Value* Value::CreateCharIntegerValue(int8 in_value){
+    return new FundamentalValue(in_value);
+}
+
+//static
+Value* Value::CreateShortIntegerValue(int16 in_value){
+    return new FundamentalValue(in_value);
+}
+
+//static
 Value* Value::CreateIntegerValue(int32 in_value){
 	return new FundamentalValue(in_value);
 }
@@ -94,11 +104,18 @@ BinaryValue* Value::CreateBinaryValue(char* buffer,size_t size){
 	return BinaryValue::Create(buffer,size);
 }
 
-bool Value::GetAsBoolean(bool* in_value) const {
+bool Value::GetAsBoolean(bool* out_value) const {
   return false;
 }
 
-bool Value::GetAsInteger(int32* in_value) const {
+bool Value::GetAsCharInteger(int8* out_value) const {
+    return false;
+}
+
+bool Value::GetAsShortInteger(int16* out_value) const {
+    return false;
+}
+bool Value::GetAsInteger(int32* out_value) const {
   return false;
 }
 
@@ -106,15 +123,15 @@ bool Value::GetAsBigInteger(int64* out_value) const{
   return false;
 }
 
-bool Value::GetAsReal(double* in_value) const {
+bool Value::GetAsReal(double* out_value) const {
   return false;
 }
 
-bool Value::GetAsString(std::string* in_value) const {
+bool Value::GetAsString(std::string* out_value) const {
   return false;
 }
 
-bool Value::GetAsString(std::wstring* in_value) const {
+bool Value::GetAsString(std::wstring* out_value) const {
   return false;
 }
 
@@ -134,6 +151,18 @@ bool FundamentalValue::GetAsBoolean(bool* out_value) const {
   if (out_value && IsType(TYPE_BOOLEAN))
     *out_value = boolean_value_;
   return (IsType(TYPE_BOOLEAN));
+}
+
+bool FundamentalValue::GetAsCharInteger(int8* out_value) const {
+    if (out_value && IsType(TYPE_CHAR_INTEGER))
+        *out_value = char_integer_value_;
+    return (IsType(TYPE_CHAR_INTEGER));
+}
+
+bool FundamentalValue::GetAsShortInteger(int16* out_value) const {
+    if (out_value && IsType(TYPE_SHORT_INTEGER))
+        *out_value = short_integer_value_;
+    return (IsType(TYPE_SHORT_INTEGER));
 }
 
 bool FundamentalValue::GetAsInteger(int32* out_value) const {
@@ -160,6 +189,12 @@ Value* FundamentalValue::DeepCopy() const {
       case TYPE_BOOLEAN:
          return CreateBooleanValue(boolean_value_);
 
+      case TYPE_CHAR_INTEGER:
+          return CreateCharIntegerValue(char_integer_value_);
+
+      case TYPE_SHORT_INTEGER:
+          return CreateShortIntegerValue(short_integer_value_);
+
       case TYPE_INTEGER:
          return CreateIntegerValue(integer_value_);
 
@@ -183,10 +218,22 @@ bool FundamentalValue::Equals(const Value* other) const {
 		bool lhs, rhs;
 		return GetAsBoolean(&lhs) && other->GetAsBoolean(&rhs) && lhs == rhs;
 	 }
+	 case TYPE_CHAR_INTEGER: {
+	     int8 lhs,rhs;
+	     return GetAsCharInteger(&lhs) && other->GetAsCharInteger(&rhs) && lhs == rhs;
+	 }
+     case TYPE_SHORT_INTEGER: {
+         int16 lhs,rhs;
+         return GetAsShortInteger(&lhs) && other->GetAsShortInteger(&rhs) && lhs == rhs;
+     }
 	 case TYPE_INTEGER: {
 		int lhs, rhs;
 		return GetAsInteger(&lhs) && other->GetAsInteger(&rhs) && lhs == rhs;
 	 }
+     case TYPE_BIG_INTEGER: {
+         int64 lhs,rhs;
+         return GetAsBigInteger(&lhs) && other->GetAsBigInteger(&rhs) && lhs == rhs;
+     }
 	 case TYPE_REAL: {
 		double lhs, rhs;
 		return GetAsReal(&lhs) && other->GetAsReal(&rhs) && lhs == rhs;
@@ -322,6 +369,13 @@ void DictionaryValue::SetBoolean(const std::string& path, bool in_value){
 	Set(path,CreateBooleanValue(in_value));
 }
 
+void DictionaryValue::SetCharInteger(const std::string& path, int8 in_value){
+    Set(path, CreateCharIntegerValue(in_value));
+}
+void DictionaryValue::SetShortInteger(const std::string& path, int16 in_value){
+    Set(path, CreateShortIntegerValue(in_value));
+}
+
 void DictionaryValue::SetInteger(const std::string& path, int32 in_value){
 	Set(path, CreateIntegerValue(in_value));
 }
@@ -367,6 +421,12 @@ void DictionaryValue::SetBoolean(const std::wstring& path, bool in_value){
 	Set(path,CreateBooleanValue(in_value));
 }
 
+void DictionaryValue::SetCharInteger(const std::wstring& path, int8 in_value) {
+    Set(path, CreateCharIntegerValue(in_value));
+}
+void DictionaryValue::SetShortInteger(const std::wstring& path, int16 in_value) {
+    Set(path, CreateShortIntegerValue(in_value));
+}
 void DictionaryValue::SetInteger(const std::wstring& path, int32 in_value) {
 	Set(path, CreateIntegerValue(in_value));
 }
@@ -424,6 +484,22 @@ bool DictionaryValue::GetBoolean(const std::wstring& path,
     return false;
 
   return value->GetAsBoolean(bool_value);
+}
+
+bool DictionaryValue::GetCharInteger(const std::wstring& path,
+                                int8* out_value) const {
+    Value* value;
+    if (!Get(path, &value))
+        return false;
+    return value->GetAsCharInteger(out_value);
+}
+
+bool DictionaryValue::GetShortInteger(const std::wstring& path,
+                                int16* out_value) const {
+    Value* value;
+    if (!Get(path, &value))
+        return false;
+    return value->GetAsShortInteger(out_value);
 }
 
 bool DictionaryValue::GetInteger(const std::wstring& path,
@@ -535,6 +611,24 @@ bool DictionaryValue::GetWithoutPathExpansion(const std::wstring& key,
 	if (out_value)
 		*out_value = entry;
 	return true;
+}
+
+bool DictionaryValue::GetCharIntegerWithoutPathExpansion(const std::wstring& path,
+                                                     int8* out_value) const {
+  Value* value;
+  if (!GetWithoutPathExpansion(path, &value))
+    return false;
+
+  return value->GetAsCharInteger(out_value);
+}
+
+bool DictionaryValue::GetShortIntegerWithoutPathExpansion(const std::wstring& path,
+                                                     int16* out_value) const {
+  Value* value;
+  if (!GetWithoutPathExpansion(path, &value))
+    return false;
+
+  return value->GetAsShortInteger(out_value);
 }
 
 bool DictionaryValue::GetIntegerWithoutPathExpansion(const std::wstring& path,
@@ -703,6 +797,21 @@ bool ListValue::GetBoolean(size_t index, bool* bool_value) const {
     return false;
 
   return value->GetAsBoolean(bool_value);
+}
+
+bool ListValue::GetCharInteger(size_t index, int8* out_value) const {
+  Value* value;
+  if (!Get(index, &value))
+    return false;
+
+  return value->GetAsCharInteger(out_value);
+}
+bool ListValue::GetShortInteger(size_t index, int16* out_value) const {
+  Value* value;
+  if (!Get(index, &value))
+    return false;
+
+  return value->GetAsShortInteger(out_value);
 }
 
 bool ListValue::GetInteger(size_t index, int32* out_value) const {
