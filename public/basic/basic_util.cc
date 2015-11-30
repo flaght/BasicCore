@@ -184,6 +184,14 @@ bool BasicUtil::StringUtil::StringToInteger(const std::string& input,IntegerType
 		return false;
 }
 
+bool BasicUtil::StringUtil::StringToCharInt(const std::string& input,int8* output) {
+    return StringToNumber<StringToCharIntTraits>(input,output);
+}
+
+bool BasicUtil::StringUtil::StringToShortInt(const std::string& input,int16* output) {
+    return StringToNumber<StringToShortIntTraits>(input,output);
+}
+
 bool BasicUtil::StringUtil::StringToInt(const std::string& input,int32* output){
 	return StringToNumber<StringToIntTraits>(input,output);
 }

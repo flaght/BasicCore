@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #include "curl/curl.h"
 #include "basic/basictypes.h"
 #if defined (GOOGLE_URL)
@@ -12,6 +13,7 @@ typedef GURL            MIG_URL;
 typedef std::string     MIG_URL;
 #endif
 
+typedef std::list<std::string>  MIG_VALUE;
 namespace http{
 class HttpMethodGet{
 public:
@@ -24,13 +26,14 @@ public:
     void SetHeaders(std::string& value);
     void SetResolve(std::string& value);
     inline int  GetCode() {return code_;}
-    bool GetHeader(const std::string& key,std::string& value);
+    bool GetHeader(const std::string& key,MIG_VALUE& value);
 private:
 	const MIG_URL& url_;
 
 	int code_;
 	std::vector<char> content_;
-	std::map<std::string,std::string> header_;
+//	std::map<std::string,std::string> header_;
+    std::map<std::string,std::list<std::string> >  header_;
 	struct curl_slist* headers_;
 	struct curl_slist* resolves_;
 };
@@ -43,12 +46,14 @@ public:
     inline int  GetCode() {return code_;}
     bool GetContent(std::string& content);
     void SetHeaders(std::string& value);
+    bool GetHeader(const std::string& key,MIG_VALUE& value);
 private:
 	const MIG_URL& url_;
 
 	int code_;
 	std::vector<char> content_;
-	std::map<std::string,std::string> header_;
+	//std::map<std::string,std::string> header_;
+	std::map<std::string,std::list<std::string> > header_;
 	struct curl_slist* headers_;
 	struct curl_slist* bodys_;
 };	

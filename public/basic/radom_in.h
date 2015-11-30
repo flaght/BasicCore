@@ -26,6 +26,8 @@ public:
 
 	int64 GetRandomID ();
 
+	int32 GetRandomIntID ();
+
 	bool DeinitRandom ();
 private:
 	FILE *m_urandomfp;

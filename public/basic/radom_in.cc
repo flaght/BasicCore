@@ -48,6 +48,17 @@ int64 SysRadom::GetRandomID(){
 	return rd;
 }
 
+int32 SysRadom::GetRandomIntID(){
+    int32 rd = 0;
+    do {
+        errno = 0;
+        fread (&rd, sizeof (rd), 1, m_urandomfp);
+    } while (errno == EINTR);
+    rd = (rd>0)?rd:(-rd);
+    return rd;
+}
+
+
 bool SysRadom::DeinitRandom(){
     fclose (m_urandomfp);
 	return true;

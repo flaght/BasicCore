@@ -38,6 +38,37 @@ public:
 
 	class StringUtil{
 	public:
+
+	    //  fix me 未写具体方法 暂时用 String To Int 方法
+        class StringToCharIntTraits {
+        public:
+            typedef std::string string_type;
+            typedef int8 value_type;
+            static const int kBase = 10;
+            static inline value_type convert_func(const string_type::value_type* str,
+                        string_type::value_type** endptr){
+                return strtol(str,endptr,kBase);
+            }
+            static inline bool valid_func(const string_type& str){
+                return !str.empty() && !isspace(str[0]);
+            }
+        };
+
+        //  fix me 未写具体方法 暂时用 String To Int 方法
+	    class StringToShortIntTraits {
+        public:
+            typedef std::string string_type;
+            typedef int16 value_type;
+            static const int kBase = 10;
+            static inline value_type convert_func(const string_type::value_type* str,
+                        string_type::value_type** endptr){
+                return strtol(str,endptr,kBase);
+            }
+            static inline bool valid_func(const string_type& str){
+                return !str.empty() && !isspace(str[0]);
+            }
+	    };
+
 		class StringToIntTraits{
 		public:
 			typedef std::string string_type;
@@ -82,6 +113,10 @@ public:
 	public:
 		template<typename IntegerType>
 		static bool StringToInteger(const std::string& input,IntegerType* output);
+
+		static bool StringToCharInt(const std::string& input,int8* output);
+
+		static bool StringToShortInt(const std::string& input,int16* output);
 
 		static bool StringToInt(const std::string& input,int32* output);
 
