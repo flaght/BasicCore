@@ -221,7 +221,7 @@ void JsonValueSerializer::FreeValue(base_logic::Value* value){
 }
 
 Value* JsonValueSerializer::Deserialize(int* error_code,std::string* error_str){
-	base_logic::DictionaryValue* value = new base_logic::DictionaryValue;
+	/*base_logic::DictionaryValue* value = new base_logic::DictionaryValue;
 	value->SetBigInteger(L"AGE",1321321);
 	value->SetString(L"name","TTTTRRRR");
 	value->SetBigInteger(L"AGE1",1321321);
@@ -246,9 +246,9 @@ Value* JsonValueSerializer::Deserialize(int* error_code,std::string* error_str){
 	}
 
 
-	return NULL;
+	return NULL;*/
 
-	/*std::wstring json_wide(base::BasicUtil::StringConversions::UTF8ToWide(*json_string_));
+	std::wstring json_wide(base::BasicUtil::StringConversions::UTF8ToWide(*json_string_));
 	start_pos_ = json_wide.c_str();
 
 	if(!json_wide.empty() && start_pos_[0] == 0xFEFF)
@@ -272,7 +272,7 @@ Value* JsonValueSerializer::Deserialize(int* error_code,std::string* error_str){
 	if(error_code == 0)
 		SetErrorCode(SYNTAX_ERROR,json_pos_);
 
-	return root.release();*/
+	return root.release();
 }
 
 
