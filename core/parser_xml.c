@@ -17,6 +17,7 @@ const char srv_config_bindhost[] = "bindhost";
 const char srv_config_port[] = "port";
 const char srv_config_path[] = "path";
 const char log_config[] = "log_config";
+const char log_facility[] = "log_facility";
 const char log_usr_file[] = "usr_file";
 const char log_sys_file[] = "sys_file";
 const char log_err_file[] = "error_file";
@@ -74,6 +75,10 @@ static void XMLCALL start_config_element(void *userData,
     
     else if(strcmp(name,log_config)==0){
         for(i=0;atts[i]!=0;i+=2){
+            if(strcmp(log_facility,atts[i])==0){
+                buffer_copy_string(srv->srv_conf.facility,atts[i+1]);
+            }
+            SET_SRV_CONFIG(log_facility,srv_conf.facility);
             SET_SRV_CONFIG(log_usr_file,srv_conf.usr_file);
             SET_SRV_CONFIG(log_sys_file,srv_conf.sys_file);
             SET_SRV_CONFIG(log_err_file,srv_conf.error_file);

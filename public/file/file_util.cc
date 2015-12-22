@@ -45,7 +45,7 @@ int WriteFile(const FilePath& filename,const char* data,int size){
     return bytes_written;
 }
 
-int WriteFileDescriptor(const int fd,const char* data,int size){ //不能一次性完全写入情况
+int WriteFileDescriptor(const int fd,const char* data,int size){
     ssize_t bytes_written_total = 0;
     for(ssize_t bytes_written_partial = 0;
         bytes_written_partial<size;

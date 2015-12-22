@@ -1,12 +1,15 @@
 #include "mig_log.h"
+#include "file/file_util.h"
 #include <pthread.h>
 
 #define _LOG_LEN        512
 #define _LOG_LENGTH     2048
-#define _LOG_SYSTEM     LOG_LOCAL0
-#define _LOG_USER       LOG_LOCAL1
+#define _LOG_SYSTEM     LOG_LOCAL1
+#define _LOG_USER       LOG_LOCAL5
 
 static char _prog_name[_LOG_LEN];
+
+static int  _facility = 0;
 
 static char *getprogname (pid_t pid)
 {
@@ -40,11 +43,22 @@ getprogname_exit:
     return prog_name;
 }
 
-int log_init ()
+int log_init (int facility)
 {
+    int facilities[] = {
+            LOG_LOCAL0,
+            LOG_LOCAL1,
+            LOG_LOCAL2,
+            LOG_LOCAL3,
+            LOG_LOCAL4,
+            LOG_LOCAL5,
+            LOG_LOCAL6,
+            LOG_LOCAL7,
+    };
+
+    _facility= facilities[facility];
     if (getprogname (getpid ()) == NULL)
         return -1;
-
 	return 0;
 }
 
@@ -74,10 +88,14 @@ int log_impl (const char *file, const int line, const char *func, int level, int
     va_end (argptr);
     snprintf (message + message_len, _LOG_LENGTH - message_len, "%s", message2);
 
+    int facility1 = LOG_LOCAL6;
+    int facility2 = _facility;
+
+    printf("facility1 %d  facility2 %d",facility1,facility2);
     if (level == SYSTEM_LEVEL)
         openlog (_prog_name, LOG_PID|LOG_CONS|LOG_NDELAY, _LOG_SYSTEM);
     else
-        openlog (_prog_name, LOG_PID|LOG_CONS|LOG_NDELAY, _LOG_USER);
+        openlog (_prog_name, LOG_PID|LOG_CONS|LOG_NDELAY, _facility);
 
     switch (priority) {
     case NO_PRIORITY:

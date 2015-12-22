@@ -18,8 +18,9 @@
 #include <dirent.h>
 #include <string.h>
 #include <signal.h>
+#include <syslog.h>
 #include <sys/resource.h>
-#include "client/linux/handler/exception_handler.h"
+//#include "client/linux/handler/exception_handler.h"
 
 static struct server *srvt = NULL;
 
@@ -43,6 +44,7 @@ static struct server* server_init(void){
 
 	CLEAN(srv_conf.bindhost);
 	CLEAN(srv_conf.error_file);
+	CLEAN(srv_conf.facility);
 	CLEAN(srv_conf.usr_file);
 	CLEAN(srv_conf.sys_file);
 	CLEAN(srv_conf.username);
@@ -85,6 +87,7 @@ static void server_free(struct server *srv)
 
 	CLEAN(srv_conf.bindhost);
 	CLEAN(srv_conf.error_file);
+	CLEAN(srv_conf.facility);
 	CLEAN(srv_conf.usr_file);
 	CLEAN(srv_conf.sys_file);
 	CLEAN(srv_conf.username);
@@ -264,7 +267,7 @@ static int set_ulimit(){
 __attribute__((visibility("default")))
 int core_main(int agrc,char* argv[]){
     
-    google_breakpad::ExceptionHandler eh(".",NULL,DumpCallBack,NULL,true);
+	//google_breakpad::ExceptionHandler eh(".",NULL,DumpCallBack,NULL,true);
 	if ((srvt=server_init())==NULL){
 	    MIG_ERROR(USER_LEVEL,"server_init error[%s]",strerror(errno));
 		return -1;
@@ -273,7 +276,8 @@ int core_main(int agrc,char* argv[]){
 	set_signals();
 
 	open_dev_null(STDIN_FILENO);
-	open_dev_null(STDOUT_FILENO);
+    open_dev_null(STDOUT_FILENO);
+
 
 	if (config_read(srvt)<0){
 		MIG_ERROR(USER_LEVEL,"xml parser error\n");
@@ -283,6 +287,7 @@ int core_main(int agrc,char* argv[]){
 
 	set_ulimit();
 
+	log_init(atoi(srvt->srv_conf.facility->ptr));
 	if (get_plugin_info(srvt)<0){
 		MIG_ERROR(SYSTEM_LEVEL,"get plugins xml error");
 		goto rel_plugins;

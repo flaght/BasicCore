@@ -220,6 +220,8 @@ struct server_config{
 
 	struct buffer   *sys_file;
 
+    struct buffer   *facility;
+
 	struct buffer   *username;
 
 	struct buffer   *modules_dir;
@@ -229,6 +231,7 @@ struct server_config{
 	struct buffer   *max_fds;
 
 	struct buffer   *max_conns;
+
 #if defined (NET_WORK)
 	struct buffer   *port;
 #endif
