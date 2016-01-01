@@ -22,12 +22,14 @@ LINK_FLAGS =
 
 ## 头文件
 INCLUDE_PATHS = -I./ -I ../ -I/usr/local/libmemcached-1.0.7/include/ -I../core -I../public/ -I/usr/local/include\
-				 -I/usr/include/mysql -I./../third_party/hiredis  -I../base -I./../third_party/ -I./../public/ -I/usr/local/freetds/include/
+				 -I/usr/include/mysql -I./../third_party/hiredis  -I../base -I./../third_party/\
+				 -I./../public/ -I/usr/local/freetds/include/ -I ./../third_party/librdkafka/src/
 
 ## 库
 LINK_PATHS = -L./ -L/usr/local/libmemcached-1.0.7/lib/  -L/usr/lib64/mysql
 LINK_LIBRARYS = -lmemcached -lmemcachedutil  -lexpat -lrt -lpthread -ldl -liconv -lmysqlclient -lcurl\
-				../lib/libbreakpad_client.a ../lib/libhiredis.a  ../third_party/dmg_fp/lib/dmg_fp.a 
+				../lib/libbreakpad_client.a ../lib/libhiredis.a  ../third_party/dmg_fp/lib/dmg_fp.a\
+				../third_party//librdkafka/librdkafka.a
 
 ##3rd
 THIRD_PATH = ../public
@@ -41,6 +43,7 @@ LINK = $(AR)  $(OUTPUT_FILE) $?
 all: clean output delete-temp-file
 output:	basic_util.o icu_utf.o base_db_mysql_auto.o base_dic_redis_auto.o\
 	basic_lbs_info.o lbs_baidu_connector.o lbs_dic_comm.o location_server.o\
+	kafka_consumer.o kafka_producer.o\
 	block_msg_queue.o  queue_dic_comm.o lbs_connector.o string_escape.o\
 	lbs_db_comm.o lbs_logic_unit.o logic_comm.o base_values.o http_api.o\
 	base_thread_handler.o base_thread_lock.o caiyun_weather_engine.o\
@@ -145,6 +148,14 @@ push_db_comm.o:
 	
 push_logic_unit.o:
 	$(COMPILE) ./pushmsg/push_logic_unit.cc
+	
+##kafka
+kafka_consumer.o :
+	$(COMPILE) ./queue/kafka_consumer.cc
+	
+kafka_producer.o :
+	$(COMPILE) ./queue/kafka_producer.cc
+	
 	
 ##基础
 basic_info.o:
