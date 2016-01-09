@@ -10,6 +10,17 @@ char* RedisConnections(warrper_redis_context_t** context ,
 	return NULL;
 }
 
+int RedisSelectDB(warrper_redis_context_t** context,
+    const char* db_name) {
+  redisReply *reply;
+
+  /* Switch to db_name for testing, now that we know we can chat. */
+  reply = redisCommand((*context)->context,"SELECT %s", db_name);
+  assert(reply != NULL);
+  freeReplyObject(reply);
+  return 1;
+}
+
 int RedisAddValue(warrper_redis_context_t* context,
 				const char* key,const size_t key_len,
 				const char* val,const size_t val_len){
