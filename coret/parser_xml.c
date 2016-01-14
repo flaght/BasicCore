@@ -75,7 +75,6 @@ static void XMLCALL start_config_element(void *userData,
     
     else if(strcmp(name,log_config)==0){
         for(i=0;atts[i]!=0;i+=2){
-            if(strcmp(log_facility,atts[i])==0)
             SET_SRV_CONFIG(log_facility,srv_conf.facility);
             SET_SRV_CONFIG(log_usr_file,srv_conf.usr_file);
             SET_SRV_CONFIG(log_sys_file,srv_conf.sys_file);
