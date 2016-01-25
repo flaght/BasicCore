@@ -428,7 +428,11 @@ int echo_forward(void *privates,int length,struct server *srv)
             status = -EAGAIN;
             break;
         }else if(spconn->psc_rx_state==STATE_NEW){
-           spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
+#if defined HEAD_SHORT
+        	spconn->psc_rx_nob_wanted = *(short*)(block->address+conn->prev_packet_offset);
+#else
+        	spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
+#endif
            //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_wanted[%d]",spconn->psc_rx_nob_wanted);
            spconn->psc_rx_nob_left = spconn->psc_rx_nob_wanted - HEAD_LEN;
            spconn->psc_rx_state = STATE_READ_HEADER;
@@ -538,9 +542,9 @@ int sockbase_receive(struct psock_conn *conn){
     int rc,err=0;
     for(;;){
         rc = recv(conn->psc_sock,conn->psc_rx_buffer,conn->psc_rx_size,0);
-        /*if (rc>0)
+        if (rc>0)
             MIG_DEBUG(USER_LEVEL,"conn->psc_rx_size[%d] [%s] rc[%d]",conn->psc_rx_size,
-    			      conn->psc_rx_buffer,rc);*/
+    			      conn->psc_rx_buffer,rc);
         if(rc>0){
             conn->psc_rx_started = 1;
             conn->psc_rx_deadline = time(NULL)+5;
