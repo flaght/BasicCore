@@ -463,7 +463,8 @@ int echo_forward(void *privates,int length,struct server *srv)
         echo_handle_packet(packet,srv);
         spconn->psc_rx_state = STATE_NEW;
         spconn->psc_rx_nob_wanted = spconn->psc_rx_nob_left = HEAD_LEN;
-        if(conn->offset+(HEAD_LEN < 4 ? 4 : HEAD_LEN)>block->length){
+        if(conn->offset+HEAD_LEN>block->length){
+            assert(conn->offset+HEAD_LEN>block->length);
             conn->prev_packet_offset = 0;
             conn->offset = 0;
             echo_block_decref(block,srv);
