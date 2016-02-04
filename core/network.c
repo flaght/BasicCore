@@ -1129,6 +1129,7 @@ int network_stop(struct server *srv)
    destroy_sock_adapter_table(srv);
    
    if(srv->connect_pool){free(srv->connect_pool);srv->connect_pool;}
+   return 0;
 }
 
 int create_reconnects(struct server *srv){
