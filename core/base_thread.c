@@ -101,7 +101,9 @@ void base_deinit_thread (base_thread_t *thrd)
 {
     BASE_ASSERT (thrd);
     free (thrd->td);
+    thrd->td = NULL;
     free (thrd);
+    thrd = NULL;
 }
 
 pthread_t base_get_threadid ()
@@ -113,6 +115,7 @@ int base_exit_thread (base_thread_t *thrd, int retval)
 {
     BASE_ASSERT (thrd);
     thrd->retval = retval;
+    base_deinit_thread(thrd);
     pthread_exit (NULL);
     return 0;
 }
