@@ -198,7 +198,7 @@ static int should_skip(const char* filepath)
     char* l =".";
     char* p;
     
-    p = strstr(filepath,l);
+    p = (char*)strstr(filepath,l);
     if(p)
         return 1;
     else

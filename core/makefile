@@ -18,9 +18,11 @@ CPP_FLAG = -g -Wall -w -fPIC -c -rdynamic -D_LINUX -DDEBUG -D_DEBUG -D_REENTRANT
 LINK_FLAGS = -g  -fPIC -shared -lrt
 ## for release
 ## LINK_FLAGS = -s -O3 -shared -fPIC
+##mylib 目录
+THIRD_PATH = ./../../mylib
 
 ## 头文件
-INCLUDE_PATHS = -I./../public -I./../third_party/breakpad/src
+INCLUDE_PATHS = -I$(THIRD_PATH)/public -I./../../third_party/breakpad/src
 
 ## 库
 LINK_PATHS =   -L/usr/local/lib
@@ -83,5 +85,5 @@ clock_task.o:
 	$(COMPILE) ./clock_task.c
 
 mig_log.o:
-	$(COMPILE) ./../public/log/mig_log.cc 
+	$(COMPILE) $(THIRD_PATH)/public/log/mig_log.cc 
 
