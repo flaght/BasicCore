@@ -1200,7 +1200,7 @@ int create_connects(struct server *srv){
 			n++;
 		}
     }
-    //assert(n==srv->ncount_connect);
+    assert(n==srv->ncount_connect);
     return 0;
 }
 
