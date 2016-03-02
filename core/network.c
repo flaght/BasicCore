@@ -1138,7 +1138,6 @@ void free_network(struct server *srv)
     destroy_sock_adapter(srv->sa,srv);
     event_base_free(srv->base);
     destroy_sock_adapter_table(srv);
-    return 0;
 }
 
 int network_register_fdevents(struct server *srv)
