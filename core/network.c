@@ -37,13 +37,7 @@ static struct sock_adapter* conn_head = NULL;
 #define HEAD_LEN 4
 #endif
 
-//read MACRO
-// NET_WORK 网络通讯
-// UNIX_WORK 进程通讯
-// TEXT_PTL 文本协议
-// BRY_PTL 二进制协议
 
-//#define UNIX_WORK 1
 
 enum PACKET_STATE{
     STATE_NEW = 0,
@@ -294,7 +288,8 @@ int echo_post_recv(struct echo_conn *conn,int status,struct server *srv){
 
     //MIG_INFO(USER_LEVEL, "sc->psc_rx_state=%d sc->psc_rx_size=%d, sc->psc_rx_nob_left=%d conn->block->length conn->offset sc=%p",
     //		(int)sc->psc_rx_state, sc->psc_rx_size, sc->psc_rx_nob_left, conn->block->length, conn->offset, sc);
-	if(sc->psc_rx_state==STATE_NEW){
+#if defined (BRY_PTL)
+    if(sc->psc_rx_state==STATE_NEW){
 	    sc->psc_rx_size = sc->psc_rx_nob_left;
 	    //assert(sizeof(int)==HEAD_LEN);
 	 }    else if(sc->psc_rx_state==STATE_READ_HEADER){
@@ -303,7 +298,11 @@ int echo_post_recv(struct echo_conn *conn,int status,struct server *srv){
         else
             sc->psc_rx_size = sc->psc_rx_nob_left;
     }
+#endif
     //sc->psc_rx_size = conn->block->length - conn->offset;
+#if defined (TEXT_PTL)
+    sc->psc_rx_size = conn->block->length-conn->offset;
+#endif
     sc->psc_rx_buffer = conn->block->address + conn->offset;
     return status;
 }
@@ -414,8 +413,8 @@ void echo_handle_packet(struct echo_packet *packet,struct server *srv) {
     echo_packet_free(packet,srv);
 }
 
-int echo_forward(void *privates,int length,struct server *srv)
-{
+
+int echo_forward(void *privates,int length,struct server *srv){
     struct echo_conn *conn = (struct echo_conn*)privates;
     struct echo_block *block = conn->block;
     char *ptr =block->address+conn->offset;
@@ -436,7 +435,7 @@ int echo_forward(void *privates,int length,struct server *srv)
     //MIG_DEBUG(USER_LEVEL, "length=%dspconn->psc_rx_size=%dspconn->psc_rx_state=%d", length, spconn->psc_rx_size, (int)spconn->psc_rx_state);
     //MIG_DEBUG(USER_LEVEL, "block->address=%p conn->prev_packet_offset=%d head_len=%d conn->offset=%d",
     //		block->address, conn->prev_packet_offset, HEAD_LEN, conn->offset);
-
+#if defined (BRY_PTL)
     while(1){
         if(p==tail)
             break;
@@ -505,6 +504,61 @@ int echo_forward(void *privates,int length,struct server *srv)
         echo_block_decref(block,srv);
         conn->block = NULL;
     }
+#endif
+#if defined (TEXT_PTL)
+	while(1) {
+		while (p < tail && *p != '\n') {
+			if (*p == 0)
+				printf("recv an error char: 0\n");
+			p++;
+		}
+
+		if (*p != '\n' && conn->offset < block->length) {
+			/* do nothing */
+			break;
+		}
+      else {
+      struct echo_packet *packet = conn->packet;
+      if (packet == NULL) {
+        packet = echo_packet_alloc(conn,srv);
+        if (packet == NULL) {
+          return -ENOMEM;
+        }
+        conn->packet = packet;
+      }
+
+			// a whole block
+			if (*p== '\n'){
+			     len = ++p - block->address - conn->prev_packet_offset;
+			     ptr = p;
+
+			     block_add_tail(packet, block, conn->prev_packet_offset, len);
+			     conn->prev_packet_offset += len;
+
+			     list_add_tail(&packet->list, &conn->inflight_packets);
+			     conn->packet = NULL;
+				 packet->srv=srv;
+				 packet->type = ((struct sock_adapter *)(spconn->psc_adapter))->type;
+				 packet->sock = ((struct sock_adapter *)(spconn->psc_adapter))->sock;
+			     echo_handle_packet(packet,srv);
+			}else{
+				assert(conn->offset == block->length);
+
+				status = -EAGAIN;
+
+				len = block->length - conn->prev_packet_offset;
+				block_add_tail(packet, block, conn->prev_packet_offset, len);
+
+				conn->prev_packet_offset = 0;
+				conn->offset = 0;
+				echo_block_decref(block,srv);
+				conn->block = NULL;
+				break;
+			}
+		}
+
+	}
+#endif
     return echo_post_recv(conn,status,srv);
 }
 
@@ -842,12 +896,17 @@ struct sock_adapter* create_connect_socket(struct server* srv,
         return NULL;
     }
     
-    plugins_call_connection_srv(srv,sock,(void*)host,strlen(host));
+    plugins_call_connection_srv(srv,sock,(void*)host,atoi(port));
 
     sc->psc_sock = sock;
     sc->psc_scheduler = &srv->one_scheduler;
     sc->psc_adapter = conn;
+#if defined (BRY_PTL)
     sc->psc_rx_nob_left = sc->psc_rx_nob_wanted =HEAD_LEN;
+#endif
+#if defined (TEXT_PTL)
+    sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+#endif
     sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
     
     if(sc->psc_cookie==NULL){
@@ -1049,8 +1108,12 @@ void server_accept(int fd,short which,void *arg){
     sc->psc_sock = sock;
     sc->psc_scheduler = &srv->one_scheduler;
     sc->psc_adapter = conn;
-    //sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+#if defined (BRY_PTL)
     sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = HEAD_LEN;
+#endif
+#if defined (TEXT_PTL)
+    sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+#endif
     sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
 
     if(sc->psc_cookie==NULL){
@@ -1275,7 +1338,13 @@ int register_event(struct server *srv,int fd,short events){
 	sc->psc_sock = fd;
 	sc->psc_scheduler = &srv->one_scheduler;
 	sc->psc_adapter = conn;
+#if defined (BRY_PTL)
 	sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = HEAD_LEN;
+#endif
+
+#if defined (TEXT_PTL)
+	sc->psc_rx_nob_left = sc->psc_rx_nob_wanted = -1;
+#endif
 	sc->psc_cookie = (void*)echo_conn_alloc(sc,srv);
 
 	if(sc->psc_cookie==NULL){
