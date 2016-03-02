@@ -2,14 +2,15 @@
 ###############################################################################
 ## 输出文件名
 #OUTPUT_FILE = ../../baby/bin/plugins/core/core.so
-OUTPUT_FILE = ../../kid/bin/plugins/core/core.so
+OUTPUT_FILE = ../../../kid/bin/plugins/core/core.so
 ## 编译器
 COMPILER = g++
 COMPILERC = gcc
 
 ## 编译选项
 ## for debug -DROOM_DEBUG_MCACHE
-CPP_FLAG = -g -Wall -w -fPIC -c -rdynamic -D_LINUX -DDEBUG -D_DEBUG -D_REENTRANT -D_GNU_SOURCE -DNET_WORK -DHEAD_SHORT
+#CPP_FLAG = -g -Wall -w -fPIC -c -rdynamic -D_LINUX -DDEBUG -D_DEBUG -D_REENTRANT -D_GNU_SOURCE -DNET_WORK -DHEAD_SHORT
+CPP_FLAG = -g -Wall -w -fPIC -c -rdynamic -D_LINUX -DDEBUG -D_DEBUG -D_REENTRANT -D_GNU_SOURCE -DUNIX_WORK -DHEAD_SHORT
 ## for release
 ##CPP_FLAG = -O3 -Wall -s -w -fPIC -c -rdynamic -D_LINUX -DNDEBUG -D_REENTRANT -D_GNU_SOURCE -DFCGI_STD -DPROCESS_WORK
 
@@ -27,7 +28,7 @@ INCLUDE_PATHS = -I$(THIRD_PATH)/public -I./../../third_party/breakpad/src
 ## 库
 LINK_PATHS =   -L/usr/local/lib
 
-LINK_LIBRARYS = -lpthread -lexpat -ldl -levent -lbreakpad_client#../lib/libbreakpad_client.a
+LINK_LIBRARYS = -lpthread -lexpat -ldl -levent #-lbreakpad_client ../lib/libbreakpad_client.a
 
 # 编译
 COMPILE = $(COMPILER) $(CPP_FLAG) $(INCLUDE_PATHS) -o $@

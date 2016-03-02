@@ -241,7 +241,7 @@ struct server_config{
 	struct buffer   *port;
 #endif
 
-#if defined (PROCESS_WORK)
+#if defined (UNIX_WORK)
     struct buffer   *process_path;
 #endif
 

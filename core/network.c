@@ -36,6 +36,15 @@ static struct sock_adapter* conn_head = NULL;
 #else
 #define HEAD_LEN 4
 #endif
+
+//read MACRO
+// NET_WORK 网络通讯
+// UNIX_WORK 进程通讯
+// TEXT_PTL 文本协议
+// BRY_PTL 二进制协议
+
+//#define UNIX_WORK 1
+
 enum PACKET_STATE{
     STATE_NEW = 0,
     STATE_READ_HEADER,
@@ -762,8 +771,14 @@ static int  create_socket(){
     int sock;
     struct sockaddr_in sai;
     int rc,opt;
+#if defined (NET_WORK)
     sock =socket(AF_INET,SOCK_STREAM,0);
+#endif
 
+
+#if defined (UNIX_WORK)
+    sock = socket(AF_UNIX,SOCK_STREAM,0);
+#endif
 
 	if(sock<0){
         MIG_ERROR(USER_LEVEL,"unable to create server socket[%d]]\n",errno);
@@ -889,17 +904,30 @@ struct sock_adapter* create_connect_socket(struct server* srv,
     return conn; 
 }
 
+#if defined (NET_WORK)
 struct sock_adapter *create_listen_socket(struct server* srv,int port){
+#endif
+
+#if defined (UNIX_WORK)
+struct sock_adapter *create_listen_socket(struct server* srv,const char* path){
+#endif
 
 
 
     struct sock_adapter* sa = NULL;
+#if defined (NET_WORK)
     struct sockaddr_in sai;
+#endif
 
+#if defined (UNIX_WORK)
+    struct sockaddr_un sai;
+#endif
     int rc,opt;
     int sock;
 	struct stat tstat;
+#if defined (NET_WORK)
     assert(port>0&&port<65536);
+#endif
 
     sa = alloc_sock_adapter(srv);
     if(sa==NULL){
@@ -914,10 +942,22 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port){
     sa->type = 0;
     sock = create_socket();
     opt = 1;
+
+#if defined (NET_WORK)
     sai.sin_family = AF_INET;
     sai.sin_port = htons(port);
     sai.sin_addr.s_addr = 0;
+#endif
 
+#if defined (UNIX_WORK)
+	if(lstat(path,&tstat)==0){
+		if(S_ISSOCK(tstat.st_mode))
+			unlink(path);
+	}
+	sai.sun_family = AF_UNIX;
+	memset(sai.sun_path,'\0',sizeof(sai.sun_path));
+	strncpy(sai.sun_path,path,strlen(path));
+#endif
 
 
 
@@ -936,6 +976,13 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port){
         free_sock_adapter(sa,srv);
         return NULL;
     }
+
+#if defined (UNIX_WORK)
+    int err = chmod(path,0777);
+    if (err < 0){
+    	MIG_ERROR(USER_LEVEL,"chmod error %s",strerror(errno));
+    }
+#endif
 
     //set socket no-block
     opt = fcntl(sock,F_GETFL,0);
@@ -1091,6 +1138,7 @@ int free_network(struct server *srv)
     destroy_sock_adapter(srv->sa,srv);
     event_base_free(srv->base);
     destroy_sock_adapter_table(srv);
+    return 0;
 }
 
 int network_register_fdevents(struct server *srv)
@@ -1103,10 +1151,13 @@ int network_register_fdevents(struct server *srv)
         MIG_ERROR(USER_LEVEL,"event_init failed\n");
         return -1;
     }
-
+#if defined (NET_WORK)
     srv->sa = create_listen_socket(srv,atoi(srv->srv_conf.port->ptr));
+#endif
 
-
+#if defined (UNIX_WORK)
+    srv->sa = create_listen_socket(srv,srv->srv_conf.process_path->ptr);
+#endif
 
     if(srv->sa==NULL){
         return -1;
