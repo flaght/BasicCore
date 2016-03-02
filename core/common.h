@@ -50,6 +50,11 @@ typedef enum connect_type{
 	OTHER = 2
 }connect_type;
 
+struct timer_func_param {
+	struct event* timer_event;
+	struct timeval tv;
+};
+
 struct psock_sched{
 
 	struct list_head pss_rx_conns;
@@ -336,6 +341,8 @@ struct server{
 	int                      ncount_connect;
 
 	struct sock_adapter**    connect_pool;
+
+	struct timer_func_param  *timer_resource;
 
 	int (*user_addtask)(struct server *srv,int fd,struct plugin *pl);
 

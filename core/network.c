@@ -170,6 +170,7 @@ static inline struct echo_block *echo_block_alloc(struct echo_conn *conn,
     block->length = 4096;
     block->refcount = 0;
     
+    //MIG_DEBUG(USER_LEVEL, "malloc block->address=%p block->length=%d", block->address, block->length);
     return block;
 }
 
@@ -177,8 +178,11 @@ static inline void echo_block_free(struct echo_block *block,struct server *srv){
 
     assert(block->refcount==0);
     __sync_fetch_and_sub(&block_count,1);
+    //MIG_DEBUG(USER_LEVEL, "free block->address=%p", block->address);
     free(block->address);
+    block->address = NULL;
     free(block);
+    block = NULL;
 }
 
 static inline struct echo_packet *echo_packet_alloc(struct echo_conn *conn,
@@ -269,6 +273,7 @@ static void block_add_tail(struct echo_packet *packet, struct echo_block *block,
 
 int echo_post_recv(struct echo_conn *conn,int status,struct server *srv){
 
+	//MIG_INFO(USER_LEVEL, "conn=%p status=%d srv=%p", conn, status, srv);
     struct psock_conn *sc = (struct psock_conn*)conn->privates;
     if(conn->block==NULL){
         conn->block = echo_block_alloc(conn,srv);
@@ -278,8 +283,8 @@ int echo_post_recv(struct echo_conn *conn,int status,struct server *srv){
         echo_block_addref(conn->block);
     }
 
-  
-    
+    //MIG_INFO(USER_LEVEL, "sc->psc_rx_state=%d sc->psc_rx_size=%d, sc->psc_rx_nob_left=%d conn->block->length conn->offset sc=%p",
+    //		(int)sc->psc_rx_state, sc->psc_rx_size, sc->psc_rx_nob_left, conn->block->length, conn->offset, sc);
 	if(sc->psc_rx_state==STATE_NEW){
 	    sc->psc_rx_size = sc->psc_rx_nob_left;
 	    //assert(sizeof(int)==HEAD_LEN);
@@ -355,7 +360,7 @@ void echo_handle_packet(struct echo_packet *packet,struct server *srv) {
     	if(pack_buff==NULL)
             return;
         pack_buff->buf = buffer_init_string("");
-		//MIG_DEBUG(USER_LEVEL,"%*.*s\n", packet->u.one_block.length, packet->u.one_block.length,
+		//MIG_DEBUG(USER_LEVEL,"packet u one_block.length%*.*s\n", packet->u.one_block.length, packet->u.one_block.length,
 		//	packet->u.one_block.one_block->address + packet->u.one_block.offset);
         buffer_append_string_len(pack_buff->buf,
 		    packet->u.one_block.one_block->address+packet->u.one_block.offset,
@@ -378,14 +383,14 @@ void echo_handle_packet(struct echo_packet *packet,struct server *srv) {
                 buffer_append_string_len(pack_buff->buf,
 						                 block->address+packet->u.blocks.head_position,
 										 len); 
-				//MIG_DEBUG(USER_LEVEL,"%*.*s\n", len, len,
+				//MIG_DEBUG(USER_LEVEL,"block address %*.*s\n", len, len,
 				//	block->address+packet->u.blocks.head_position);
             }else if(i!=packet->block_count-1){
                 buffer_append_string_len(pack_buff->buf,block->address,block->length);
-				//MIG_DEBUG(USER_LEVEL,"%*.*s\n", block->length, block->length, block->address);
+				//MIG_DEBUG(USER_LEVEL,"block->length %*.*s\n", block->length, block->length, block->address);
             }else{
                 buffer_append_string_len(pack_buff->buf,block->address,packet->u.blocks.tail_offset);
-				//MIG_DEBUG(USER_LEVEL,"%*.*s\n", packet->u.blocks.tail_offset,
+				//MIG_DEBUG(USER_LEVEL,"packet u blocks tail_offset%*.*s\n", packet->u.blocks.tail_offset,
 				//	packet->u.blocks.tail_offset, block->address);
             }
             __list_del(block->list.prev,block->list.next);
@@ -419,31 +424,38 @@ int echo_forward(void *privates,int length,struct server *srv)
         }
         conn->packet = packet;
     }
+    //MIG_DEBUG(USER_LEVEL, "length=%dspconn->psc_rx_size=%dspconn->psc_rx_state=%d", length, spconn->psc_rx_size, (int)spconn->psc_rx_state);
+    //MIG_DEBUG(USER_LEVEL, "block->address=%p conn->prev_packet_offset=%d head_len=%d conn->offset=%d",
+    //		block->address, conn->prev_packet_offset, HEAD_LEN, conn->offset);
 
     while(1){
         if(p==tail)
             break;
         if((length!=spconn->psc_rx_size)&&(spconn->psc_rx_state==STATE_NEW)){
             spconn->psc_rx_nob_left = spconn->psc_rx_size - length;
+            //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_left[%d],spconn->psc_rx_size[%d]",spconn->psc_rx_nob_left, spconn->psc_rx_size);
             status = -EAGAIN;
             break;
         }else if(spconn->psc_rx_state==STATE_NEW){
-#if defined HEAD_SHORT
-        	spconn->psc_rx_nob_wanted = *(short*)(block->address+conn->prev_packet_offset);
-#else
-        	spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
-#endif
-           //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_wanted[%d]",spconn->psc_rx_nob_wanted);
+			#if defined HEAD_SHORT
+						spconn->psc_rx_nob_wanted = *(short*)(block->address+conn->prev_packet_offset);
+			#else
+						spconn->psc_rx_nob_wanted = *(int*)(block->address+conn->prev_packet_offset);
+			#endif
+           //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_wanted[%d] conn=%p block=%p spconn=%p",
+           //		   spconn->psc_rx_nob_wanted, conn, block, spconn);
            spconn->psc_rx_nob_left = spconn->psc_rx_nob_wanted - HEAD_LEN;
            spconn->psc_rx_state = STATE_READ_HEADER;
            break;
         }else if(spconn->psc_rx_state==STATE_READ_HEADER){
+           //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_left[%d]",spconn->psc_rx_nob_left);
            spconn->psc_rx_nob_left -= length;
+           //MIG_DEBUG(USER_LEVEL,"spconn->psc_rx_nob_left[%d]",spconn->psc_rx_nob_left);
            if(spconn->psc_rx_nob_left!=0){
                 break;
            }
         }else{
-        	MIG_LOG(SYSTEM_LEVEL,"packet_state error\n");
+        	//MIG_LOG(SYSTEM_LEVEL,"packet_state error\n");
             break;
         }
         
@@ -460,11 +472,11 @@ int echo_forward(void *privates,int length,struct server *srv)
         packet->srv=srv;
         packet->type = ((struct sock_adapter *)(spconn->psc_adapter))->type;
         packet->sock = ((struct sock_adapter *)(spconn->psc_adapter))->sock;
+        //MIG_DEBUG(USER_LEVEL,"packet->type[%d]length=%dpacket->srv=%psock=%d",packet->type, length, packet->srv, packet->sock);
         echo_handle_packet(packet,srv);
         spconn->psc_rx_state = STATE_NEW;
         spconn->psc_rx_nob_wanted = spconn->psc_rx_nob_left = HEAD_LEN;
         if(conn->offset+HEAD_LEN>block->length){
-            assert(conn->offset+HEAD_LEN>block->length);
             conn->prev_packet_offset = 0;
             conn->offset = 0;
             echo_block_decref(block,srv);
@@ -472,6 +484,8 @@ int echo_forward(void *privates,int length,struct server *srv)
         }     
     }
 
+    //MIG_DEBUG(USER_LEVEL, "conn->offset=%d block->length=%d spconn=%p",
+    //		conn->offset, block->length, spconn);
     if(conn->offset==block->length){
         assert(conn->offset == block->length);
         status = -EAGAIN;
@@ -542,9 +556,6 @@ int sockbase_receive(struct psock_conn *conn){
     int rc,err=0;
     for(;;){
         rc = recv(conn->psc_sock,conn->psc_rx_buffer,conn->psc_rx_size,0);
-        if (rc>0)
-            MIG_DEBUG(USER_LEVEL,"conn->psc_rx_size[%d] [%s] rc[%d]",conn->psc_rx_size,
-    			      conn->psc_rx_buffer,rc);
         if(rc>0){
             conn->psc_rx_started = 1;
             conn->psc_rx_deadline = time(NULL)+5;
@@ -1128,7 +1139,8 @@ int network_stop(struct server *srv)
   
    destroy_sock_adapter_table(srv);
    
-   if(srv->connect_pool){free(srv->connect_pool);srv->connect_pool;}
+   if(srv->connect_pool){free(srv->connect_pool);srv->connect_pool=NULL;}
+
    return 0;
 }
 
@@ -1253,7 +1265,7 @@ int register_event(struct server *srv,int fd,short events){
     event_set(&conn->ev,fd,EV_READ|EV_PERSIST,server_read_buffer,conn);
     rc = event_add(&conn->ev,NULL);
     if(rc!=0){
-        MIG_ERROR(USER_LEVEL,"event_add failed (%d)\n",errno);
+        MIG_ERROR(USER_LEVEL,"event_add failed (%d) rc=%d\n",errno, rc);
         free_sock_adapter(conn,srv);
         return 0;
     }

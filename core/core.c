@@ -145,6 +145,13 @@ static void server_free(struct server *srv)
 		}
 	}
 #undef CLEAN
+
+	MIG_INFO(USER_LEVEL, "free timer_resource");
+	if(NULL != srv->timer_resource) {
+		event_del(srv->timer_resource->timer_event);
+		free(srv->timer_resource);
+		srv->timer_resource = NULL;
+	}
 	free(srv);
 	srv=NULL;
 }
@@ -322,13 +329,6 @@ int core_main(int agrc,char* argv[]){
 	srvt->state = SERVER_INIT_TP;
 	MIG_INFO(USER_LEVEL,"init threadpool success");
 
-
-
-	if (init_clock(srvt)<0){
-		MIG_ERROR(USER_LEVEL,"initialization of clock error");
-		goto rel_plugins;
-	}
-
 	srvt->state = SERVER_INIT_CLOCK;
 	MIG_INFO(USER_LEVEL,"init clock success");
 
@@ -345,6 +345,11 @@ int core_main(int agrc,char* argv[]){
 	if (network_register_fdevents(srvt)){
 		MIG_ERROR(USER_LEVEL,"register network event error");
 		goto rel_net;
+	}
+
+	if (init_clock(srvt)<0){
+		MIG_ERROR(USER_LEVEL,"initialization of clock error");
+		goto rel_plugins;
 	}
 
     if(create_connects(srvt)<0){
