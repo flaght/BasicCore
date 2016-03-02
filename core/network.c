@@ -1133,7 +1133,7 @@ int network_init(struct server *srv){
 }
 
 
-int free_network(struct server *srv)
+void free_network(struct server *srv)
 {
     destroy_sock_adapter(srv->sa,srv);
     event_base_free(srv->base);
@@ -1327,7 +1327,7 @@ int register_event(struct server *srv,int fd,short events){
                    "fcntl set socket non-block failed:%d\n",
                    errno);
         free_sock_adapter(conn,srv);
-        return NULL;
+        return 0;
     }
     return 1; 
 
