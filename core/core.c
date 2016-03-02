@@ -318,7 +318,6 @@ int core_main(int agrc,char* argv[]){
 		goto rel_plugins;
 	}
 
-	///test threadpool
 
 	srvt->state = SERVER_INIT_TP;
 	MIG_INFO(USER_LEVEL,"init threadpool success");
