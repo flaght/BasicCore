@@ -13,6 +13,23 @@
 #include<linux/types.h>
 #include<aio.h>
 
+//read MACRO
+// NET_WORK 网络通讯
+// UNIX_WORK 进程通讯
+// TEXT_PTL 文本协议
+// BRY_PTL 二进制协议
+
+//#define UNIX_WORK 1
+
+#if !defined (NET_WORK) && !defined (UNIX_WORK)
+#define NET_WORK 1
+#endif
+
+#if !defined (TEXT_PTL) && !defined (BRY_PTL)
+#define BRY_PTL 1
+#endif
+
+
 typedef enum handler_t{
 	HANDLER_UNSET,
 	HANDLER_GO_ON,
@@ -241,7 +258,7 @@ struct server_config{
 	struct buffer   *port;
 #endif
 
-#if defined (PROCESS_WORK)
+#if defined (UNIX_WORK)
     struct buffer   *process_path;
 #endif
 
@@ -359,4 +376,6 @@ struct server{
 
 	int  (*create_reconnects)(struct server *srv);
 };
+
+
 #endif

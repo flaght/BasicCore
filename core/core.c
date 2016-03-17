@@ -55,7 +55,7 @@ static struct server* server_init(void){
 #if defined (NET_WORK)
 	CLEAN(srv_conf.port);
 #endif
-#if defined (PROCESS_WORK)
+#if defined (UNIX_WORK)
 	CLEAN(srv_conf.process_path);
 #endif
 	CLEAN(module_path);
@@ -98,7 +98,7 @@ static void server_free(struct server *srv)
 #if defined (NET_WORK)
 	CLEAN(srv_conf.port);
 #endif
-#if defined (PROCESS_WORK)
+#if defined (UNIX_WORK)
 	CLEAN(srv_conf.process_path);
 #endif
 	CLEAN(module_path);

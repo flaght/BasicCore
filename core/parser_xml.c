@@ -66,7 +66,7 @@ static void XMLCALL start_config_element(void *userData,
 #if defined (NET_WORK)
             SET_SRV_CONFIG(srv_config_port,srv_conf.port);
 #endif
-#if defined (PROCESS_WORK)
+#if defined (UNIX_WORK)
 			SET_SRV_CONFIG(srv_config_path,srv_conf.process_path);
 #endif
         }
@@ -198,7 +198,7 @@ static int should_skip(const char* filepath)
     char* l =".";
     char* p;
     
-    p = strstr(filepath,l);
+    p = (char*)strstr(filepath,l);
     if(p)
         return 1;
     else
