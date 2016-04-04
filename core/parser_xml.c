@@ -33,6 +33,8 @@ const char plugin_id[]="id";
 const char plugin_name[]="name";
 const char plugin_version[]="version";
 const char plugin_provider[]="provider-name";
+const char if_load[] = "if_load";
+const char priority[] = "priority";
 const char remote_config[]="remote_config";
 const char remote_host[]="remote_host";
 const char remote_port[]="remote_port";
@@ -137,6 +139,12 @@ static void XMLCALL start_plugin_element(void *userData,
                 buffer_copy_string(p->version,atts[i+1]);
             else if(strcmp(plugin_provider,atts[i])==0)
                 buffer_copy_string(p->provider,atts[i+1]);
+            else if(strcmp(if_load, atts[i]) == 0)
+            	buffer_copy_string(p->if_load, atts[i+1]);
+            else if(strcmp(priority, atts[i]) == 0) {
+                buffer_copy_string(p->priority, atts[i+1]);
+                if (atoi(atts[i+1]) < 1) p->priority->ptr = NULL;
+            }
         }
     }
     else{
@@ -267,6 +275,8 @@ static void init_desc(struct plugin_desc* pl_desc)
     DESC_INIT(version);
     DESC_INIT(provider);
     DESC_INIT(path);
+    DESC_INIT(if_load);
+    DESC_INIT(priority);
 #undef DESC_INIT
 }
 
@@ -376,6 +386,54 @@ static int check_more_plugin(struct plugin_desc *pl_desc,struct list_head* head)
     }
     return 1;
 }
+static void plugin_sort_by_priority(struct server *srv) {
+  struct list_head *head = NULL;
+  struct list_head *tail = NULL;
+  struct list_head *tmp = NULL;
+  struct list_head *cur_node = NULL;
+  struct list_head *traverse = NULL;
+  struct plugin_desc *traverse_node = NULL;
+  struct plugin_desc *pl_desc = NULL;
+  
+  list_for_each(tmp, &srv->plugins_des) {
+    cur_node = tmp;
+    tmp = tmp->prev;
+    __list_del(cur_node->prev, cur_node->next);
+    pl_desc = list_entry(cur_node, struct plugin_desc, list);
+
+    if (NULL == head) {
+      head = &(pl_desc->list);
+      head->next = NULL;
+      head->prev = NULL;
+      tail = head;
+    } else {
+      char *cur_ptr = pl_desc->priority->ptr;
+      char *tra_ptr = NULL;
+      for (traverse = tail; traverse != NULL; traverse = traverse->prev) {
+        traverse_node = list_entry(traverse, struct plugin_desc, list);
+        tra_ptr = traverse_node->priority->ptr;
+        if (cur_ptr == NULL || (cur_ptr != NULL && tra_ptr != NULL && atoi(cur_ptr) >= atoi(tra_ptr))) {
+          pl_desc->list.next = traverse->next;
+          pl_desc->list.prev = traverse;
+          traverse->next = &(pl_desc->list);
+
+          if (traverse == tail) {
+            tail = &(pl_desc->list);
+          }
+          break;
+        }
+      }
+      if (traverse == NULL) {
+        pl_desc->list.next = head;
+        pl_desc->list.prev = NULL;
+        head->prev = &(pl_desc->list);
+        head = &(pl_desc->list);
+      }
+    }
+  }
+  (srv->plugins_des).next = head;
+  tail->next = &(srv->plugins_des);
+}
 int get_plugin_info(struct server *srv)
 {
     int ret;
@@ -390,6 +448,14 @@ int get_plugin_info(struct server *srv)
 
         node_path = list_entry(tmp,struct plugin_xml_path,list);
         pl_desc = parser_xml_plugin(srv,node_path->filepath);
+        if (pl_desc->if_load->ptr != NULL && strcmp(pl_desc->if_load->ptr,"true") != 0) {
+          free(pl_desc);
+          struct list_head *pre = tmp->prev;
+          struct list_head *next = tmp->next;
+          __list_del(pre, next);
+          tmp = pre;
+          continue;
+        }
         if(pl_desc!=NULL){
             // check cannot load plugin more than once
             if(check_more_plugin(pl_desc,&srv->plugins_des)){ 
@@ -402,6 +468,7 @@ int get_plugin_info(struct server *srv)
             
         }
     }
+    plugin_sort_by_priority(srv);
 
     return 0;
    
