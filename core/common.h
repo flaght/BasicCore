@@ -13,6 +13,13 @@
 #include<linux/types.h>
 #include<aio.h>
 
+#define PLUGIN_DATA_MAX 2048
+
+//  业务层回调函数对应的操作码的最大值
+#define MAX_OPERATE_COED 10000
+
+//  业务层回调函数类型
+typedef bool (*event_func_ptr)(struct server* srv, int socket,  void *packet, const void *msg,  int len) ;
 //read MACRO
 // NET_WORK 网络通讯
 // UNIX_WORK 进程通讯
@@ -29,6 +36,17 @@
 #define BRY_PTL 1
 #endif
 
+//  下面两个宏用于业务层注册回调
+#define DECLARE_EVENT_FUNC(class_name, func_name) \
+  extern "C" \
+  bool call##func_name(struct server* srv, int socket, void *packet, const void *msg, int len) { \
+    class_name* instance = class_name::GetInstance(); \
+    return instance->func_name(srv, socket, packet, msg, len); \
+  }
+
+#define CONNECT_EVENT_FUNC_WITH_OPERATECODE(class_name, func_name, operate_code) \
+  if(operate_code > 0 && operate_code < MAX_OPERATE_COED)                     \
+    logic::CoreSoUtils::GetSRV()->plugin_callback[operate_code] = call##func_name;
 
 typedef enum handler_t{
 	HANDLER_UNSET,
@@ -184,6 +202,9 @@ struct plugin_desc{
 
 	struct buffer  *provider;
 
+    struct buffer  *if_load;
+
+    struct buffer  *priority;
 	struct buffer  *path;
 
 	struct list_head list;
@@ -291,9 +312,9 @@ struct plugin {
 	struct buffer    *version;
 
 	void*     lib;
-
-	void*     data;    
-
+	void*     data;   
+	
+    void*     share_data;  // 用于插件之间的数据共享。
 	void*     (*init)();
 
 	handler_t (*clean_up)(struct server* svr,void* pd_t);
@@ -319,6 +340,10 @@ struct plugin {
 	handler_t (*connection_close_srv)(struct server* srv,int fd);
 
 	handler_t (*time_msg)(struct server* srv,char* id,int opcode,int time);
+  
+    int (*Unpack)(struct server *srv, void* in_data,int len, void **out_data);
+	
+    void (*DeletePack)(struct server *srv, void *packet);
 };
 
 
@@ -357,6 +382,7 @@ struct server{
 
 	int                      ncount_connect;
 
+	event_func_ptr plugin_callback[MAX_OPERATE_COED];  //plugin callback func
 	struct sock_adapter**    connect_pool;
 
 	struct timer_func_param  *timer_resource;
@@ -375,6 +401,7 @@ struct server{
 	void (*del_time_task)(struct server* srv,char* id,int opcode);
 
 	int  (*create_reconnects)(struct server *srv);
+    void **(*get_plugin_share_data)(struct server* srv, char *id);
 };
 
 

@@ -33,12 +33,25 @@ static bool DumpCallBack(const char* dump_path,const char* minidump_id,
 	return succeeded;
 }
 
+static void **get_plugin_share_data(struct server* srv, char *id) {
+	int i;
+	struct plugin *p = NULL;
+	for(i = 0; i < srv->plugins.used; ++i) {
+	  p = ((struct plugin **)(srv->plugins.ptr))[i];
+	  if (strcmp(p->id->ptr, id) == 0) break;
+	  p = NULL;
+	}
+	if (NULL == p) return NULL;
+
+	return &p->share_data;
+}
 static struct server* server_init(void){
 
 	struct server  *srv; 
 	srv = (struct server*)calloc(1,sizeof(*srv));    
 	assert(srv);
 
+    memset(srv->plugin_callback, NULL, MAX_OPERATE_COED);
 #define CLEAN(x)\
 	srv->x = buffer_init();
 
@@ -70,6 +83,7 @@ static struct server* server_init(void){
 	srv->ncount_connect = 0;
 	srv->state = SERVER_NO_START;
 
+    srv->get_plugin_share_data = get_plugin_share_data;
 	return srv;
 }
 
@@ -140,6 +154,8 @@ static void server_free(struct server *srv)
 			CLEAN(version);
 			CLEAN(provider);
 			CLEAN(path);
+            CLEAN(if_load);
+            CLEAN(priority);
 			free(pl_desc);
 			pl_desc = NULL;
 		}

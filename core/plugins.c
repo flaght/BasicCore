@@ -42,6 +42,9 @@ static struct plugin*  plugin_init()
 {
     struct plugin* p;
     p = (struct plugin*)calloc(1,sizeof(*p));
+    p->share_data = NULL;
+    p->Unpack = NULL;
+    p->DeletePack = NULL;
 #define CLEAN(x)\
     p->x = buffer_init();
 
@@ -156,6 +159,64 @@ handler_t plugins_call_handler_init_time(struct server *srv){
 //     }  
 // PLUGIN_TO_SLOT(PLUGIN_FUNC_TIME_INIT,handler_init_time);
 // #undef PLUGIN_TO_SLOT
+handler_t plugins_call_handler_read_new(struct server* srv,int fd,void *pd,int len) {
+  struct plugin** slot;
+  void *packet = NULL;
+  int operate_code = -1;
+  bool r = false;
+
+  if(!srv->plugins_slot) return HANDLER_GO_ON;
+   
+  slot = ((struct plugin***)srv->plugins_slot)[PLUGIN_FUNC_HANDLER_READ];
+  if(!slot) return HANDLER_GO_ON;
+
+  if (srv->plugins.used > 0 && slot[0] && slot[0]->Unpack != NULL) {
+    operate_code = slot[0]->Unpack(srv, pd, len, &packet);
+  } else {
+    return HANDLER_GO_ON;
+  }
+  
+  if (operate_code >= 0 && srv->plugin_callback[operate_code] != NULL) {
+    r = srv->plugin_callback[operate_code](srv, fd, packet, NULL, 0);
+  }
+
+  slot[0]->DeletePack(srv, packet);
+  if (r == true) {
+    return HANDLER_FINISHED;
+  } else {
+    return HANDLER_GO_ON;
+  }
+}
+
+handler_t plugins_call_handler_read(struct server* srv,int fd,void *pd,int len) {
+  struct plugin** slot;
+  int j;
+  struct plugin* p;
+  handler_t r;
+
+  r = plugins_call_handler_read_new(srv, fd, pd, len);
+  if (r == HANDLER_FINISHED) return r;
+
+  if(!srv->plugins_slot) return HANDLER_GO_ON;
+  slot = ((struct plugin***)srv->plugins_slot)[PLUGIN_FUNC_HANDLER_READ];
+  if(!slot) return HANDLER_GO_ON;
+  for(j=0;j<srv->plugins.used&&slot[j];j++){
+    p=slot[j];
+    switch(r=(p->handler_read(srv,fd,pd,len))){
+      case HANDLER_GO_ON:
+        break;
+      case HANDLER_FINISHED:
+      case HANDLER_COMEBACK:
+      case HANDLER_WAIT_FOR_EVENT:
+      case HANDLER_WAIT_FOR_FD:
+      case HANDLER_ERROR:
+        return r;
+      default:
+        MIG_ERROR(USER_LEVEL,"%s unkown state:%d\n",p->name->ptr,r);
+    }
+  }
+  return HANDLER_GO_ON;
+}
     
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,int fd,void *pd,int len) {\
@@ -185,7 +246,6 @@ handler_t plugins_call_handler_init_time(struct server *srv){
     }
 
 PLUGIN_TO_SLOT(PLUGIN_FUNC_CONNECTION,connection);
-PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_READ,handler_read);
 PLUGIN_TO_SLOT(PLUGIN_FUNC_CONNECTION_SRV, connection_srv);
 PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_READ_SRV,handler_read_srv);
 PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_READ_OTHER,handler_read_other);
@@ -467,6 +527,7 @@ handler_t plugins_call_init(struct server* srv){
 #undef PLUGIN_TO_SLOT
 
         if(p->init) {
+            p->data = NULL;
             
             if(NULL==(p->data=p->init())){
                 
@@ -503,6 +564,10 @@ handler_t plugins_call_init(struct server* srv){
 					  break;
 					}
                 }
+            }
+            if (p->data != NULL) {
+              free(p->data);
+			  p->data = NULL;
             }
         } else{
       
