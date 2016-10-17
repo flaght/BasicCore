@@ -195,7 +195,7 @@ int config_read(struct server *srv)
 static int should_skip(const char* filepath)
 {
 
-    char* l =".";
+    const char* l =".";
     char* p;
     
     p = (char*)strstr(filepath,l);

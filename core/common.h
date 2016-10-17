@@ -19,7 +19,8 @@
 // TEXT_PTL 文本协议
 // BRY_PTL 二进制协议
 
-//#define UNIX_WORK 1
+#define UNIX_WORK 1
+#define TEXT_PTL 1
 
 #if !defined (NET_WORK) && !defined (UNIX_WORK)
 #define NET_WORK 1
