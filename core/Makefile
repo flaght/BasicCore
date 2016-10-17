@@ -21,15 +21,15 @@ LINK_PATHS = -L./
 CPPFLAGS += -isystem -shared -fPIC\
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g  -Wextra -pthread -shared -fPIC
+CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE -DDEBUG -D_DEBUG
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
 PLUGIN = $(SO_DIR)/core/core.so
                 
 INCLUDE_PATHS = -I/usr/local/include\
-				-I$(THIRD_PATH)/public\
-				 -I./../../third_party/breakpad/src\
+		-I$(THIRD_PATH)/public\
+		-I./../../third_party/breakpad/src\
 
 
 # House-keeping build targets.
@@ -106,6 +106,6 @@ mig_log.o: $(THIRD_PATH)/public/log/mig_log.cc  $(THIRD_PATH)/public/log/mig_log
 	
 $(PLUGIN) : core.o buffer.o parser_xml.o plugins.o base_thread.o base_threadlock.o\
 	base_threadpool.o thread.o network.o native_library.o clock_task.o mig_log.o\
-	/usr/local/lib/libbreakpad_client.a /usr/lib64/libexpat.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -levent -lpthread -lrt -lpthread -ldl \
+	/usr/local/lib/libbreakpad_client.a /usr/lib64/libexpat.a /usr/lib/libevent.a
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS)  -lpthread -lrt -lpthread -ldl \
 	$^ -o $@
