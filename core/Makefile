@@ -10,7 +10,7 @@
 
 # Where to find user code.
 
-SO_DIR = ../../../kid/bin/plugins
+SO_DIR = ../../../george/bin/plugins
 
 THIRD_PATH = ./../../mylib
 
@@ -18,10 +18,12 @@ THIRD_PATH = ./../../mylib
 LINK_PATHS = -L./
 
 # Flags passed to the preprocessor.
-CPPFLAGS += -isystem -shared -fPIC\
+CPPFLAGS += -isystem -shared -fPIC
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE -DDEBUG -D_DEBUG
+#CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DNET_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
+
+CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
@@ -107,5 +109,5 @@ mig_log.o: $(THIRD_PATH)/public/log/mig_log.cc  $(THIRD_PATH)/public/log/mig_log
 $(PLUGIN) : core.o buffer.o parser_xml.o plugins.o base_thread.o base_threadlock.o\
 	base_threadpool.o thread.o network.o native_library.o clock_task.o mig_log.o\
 	/usr/local/lib/libbreakpad_client.a /usr/lib64/libexpat.a /usr/lib/libevent.a
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS)  -lpthread -lrt -lpthread -ldl \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lpthread -lrt -lpthread -ldl \
 	$^ -o $@
