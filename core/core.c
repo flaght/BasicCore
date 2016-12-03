@@ -163,10 +163,10 @@ static void sig_term (int sig)
 	// shutdown
 	MIG_INFO(USER_LEVEL,"shutdown got signal %d",sig);
 	srvt->state = __sync_lock_test_and_set(&srvt->state,0);
-	if(srvt->state==SERVER_NO_START){
+	/*if(srvt->state==SERVER_NO_START){
 		MIG_INFO(USER_LEVEL,"quit");
 		return;
-	}
+	}*/
 	srvt->state = SERVER_NO_START;
 	network_stop(srvt);
 	MIG_INFO(USER_LEVEL,"networkstop");
