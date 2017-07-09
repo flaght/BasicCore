@@ -616,8 +616,8 @@ int sockbase_receive(struct psock_conn *conn) {
       conn->psc_rx_started = 1;
       conn->psc_rx_deadline = time(NULL) + 5;
       err = rc;
-      MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
-                conn->psc_rx_size, conn->psc_rx_buffer, rc);
+      //MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
+        //        conn->psc_rx_size, conn->psc_rx_buffer, rc);
     } else if (rc <= 0) {
       if (rc < 0)
         err = -errno;
@@ -806,6 +806,34 @@ void server_write_buffer(int fd, short which, void *arg) {
 }
 
 ////////////////////////////////////////////////////////////////////////////
+static int create_socket_temp() {
+  int sock;
+  struct sockaddr_in sai;
+  int rc, opt;
+  sock =socket(AF_INET,SOCK_STREAM,0);
+
+
+  if (sock < 0) {
+    MIG_ERROR(USER_LEVEL, "unable to create server socket[%d]]\n", errno);
+    return 0;
+  }
+  opt = 1;
+  rc = setsockopt(sock, SOL_SOCKET, SO_KEEPALIVE, &opt, sizeof(opt));
+  if (rc != 0) {
+    MIG_ERROR(USER_LEVEL, "unable to set SO_KEEPALIVE on server socket%d\n",
+              errno);
+    close(sock);
+    return 0;
+  }
+  rc = setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+  if (rc != 0) {
+    MIG_ERROR(USER_LEVEL, "unable to set SO_REUSEADDR on servert socket:%d\n",
+              errno);
+    return 0;
+  }
+  return sock;
+}
+
 static int create_socket() {
   int sock;
   struct sockaddr_in sai;
@@ -860,7 +888,7 @@ struct sock_adapter* create_connect_socket(struct server* srv, const char* host,
 
   conn->ip = buffer_init_string(host);
 
-  sock = create_socket();
+  sock = create_socket_temp();
   opt = 1;
   sai.sin_family = AF_INET;
   sai.sin_port = htons(atoi(port));
@@ -875,7 +903,8 @@ struct sock_adapter* create_connect_socket(struct server* srv, const char* host,
 
   rc = connect(sock, (const struct sockaddr *) &sai, sizeof(sai));
   if (rc != 0) {
-    MIG_ERROR(USER_LEVEL, "connect error (%d)\n", errno);
+    MIG_ERROR(USER_LEVEL, "connect error (%s) %s %s\n", strerror(errno),
+              host, port);
     free_sock_adapter(conn, srv);
     close(sock);
     return NULL;
@@ -945,6 +974,7 @@ struct sock_adapter* create_connect_socket(struct server* srv, const char* host,
   return conn;
 }
 
+
 #if defined (NET_WORK)
 struct sock_adapter *create_listen_socket(struct server* srv,int port) {
 #endif
@@ -989,6 +1019,7 @@ struct sock_adapter *create_listen_socket(struct server* srv, const char* path) 
 #endif
 
 #if defined (UNIX_WORK)
+  MIG_INFO(USER_LEVEL, "create path %s", path);
   if (lstat(path, &tstat) == 0) {
     if (S_ISSOCK(tstat.st_mode))
       unlink(path);
@@ -1005,6 +1036,7 @@ struct sock_adapter *create_listen_socket(struct server* srv, const char* path) 
     free_sock_adapter(sa, srv);
     return NULL;
   }
+  //MIG_INFO(USER_LEVEL, " bind socket:%s", path);
 
   rc = listen(sock, 0);
   if (rc < 0) {

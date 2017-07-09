@@ -10,7 +10,7 @@
 
 # Where to find user code.
 
-SO_DIR = ../../../george/bin/plugins
+SO_DIR = ./
 
 THIRD_PATH = ./../../mylib
 
@@ -18,16 +18,16 @@ THIRD_PATH = ./../../mylib
 LINK_PATHS = -L./
 
 # Flags passed to the preprocessor.
-CPPFLAGS += -isystem -shared -fPIC
+CPPFLAGS += -g -Wextra -isystem -shared -fPIC
 
 # Flags passed to the C++ compiler.
-#CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DNET_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
+CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DNET_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
 
-CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE
+#CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE
 
 # All tests produced by this Makefile.  Remember to add new tests you
 # created to the list.
-PLUGIN = $(SO_DIR)/core/core.so
+PLUGIN = $(SO_DIR)/core.so
                 
 INCLUDE_PATHS = -I/usr/local/include\
 		-I$(THIRD_PATH)/public\
