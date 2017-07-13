@@ -468,7 +468,7 @@ handler_t plugins_call_init(struct server* srv){
 
         if(p->init) {
             
-            if(NULL==(p->data=p->init())){
+            if(NULL==(p->data=p->init(srv))){
                 
                //SINA_ERROR(SYSTEM_LEVEL,"plugin-init failed for module %s",p->id);
                return HANDLER_ERROR; 

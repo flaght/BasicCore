@@ -4,16 +4,8 @@
 #include <assert.h>
 #include <signal.h>
 #include <string.h>
+#include "log/mig_log.h"
 #include "common.h"
-int netaio_init(struct server *srv)
-{
-    srv->network_write = netaio_send;
-    srv->network_write_all = netaio_multicast;
-    srv->network_write_return = netaio_return;
-    srv->network_send = net_send;
-    srv->network_multicast = net_multicast;
-    return 0;
-}
 
 int netaio_send (struct server *srv, struct netaio **aio, struct socket_adapter *sa, void *data, size_t len)
 {
@@ -141,7 +133,11 @@ static ssize_t sendfull (int socket,
 
     do {
         amt = nbytes;
+#if !defined (PIPE_WORK)
         amt = send (socket, buf, amt, 0);
+#else
+        amt = write(socket, buf, amt);
+#endif
         buf = (char *) buf + amt;
         nbytes -= amt;
         total += amt;
@@ -154,7 +150,9 @@ static ssize_t sendfull (int socket,
 int net_send(struct server *srv,int sock,void* data,size_t len)
 {
     //return (int) sendfull (sa->sock, data, len);
-    return (int) sendfull(sock,(const char*)data,len);
+    int rc = (int) sendfull(sock,(const char*)data,len);
+    //MIG_INFO(USER_LEVEL,"send length %d", rc);
+    return rc;
 }
 
 int net_multicast (struct server *srv, struct list_head *listsa, void *data, size_t len)
@@ -173,3 +171,23 @@ int net_multicast (struct server *srv, struct list_head *listsa, void *data, siz
 
     return complets;
 }
+
+int set_event_task(struct server* srv, void* data, size_t len) {
+    struct sock_adapter* sa = srv->sa;
+    if (sa == NULL)
+        return -1;
+
+    net_send(srv, sa->sock, data, len);
+}
+
+int netaio_init(struct server *srv)
+{
+    //srv->network_write = netaio_send;
+    /*srv->network_write_all = netaio_multicast;
+    srv->network_write_return = netaio_return;*/
+    //srv->network_send = net_send;
+    /*srv->network_multicast = net_multicast;*/
+    srv->set_event_task = set_event_task;
+    return 0;
+}
+
