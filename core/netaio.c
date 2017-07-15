@@ -151,7 +151,7 @@ int net_send(struct server *srv,int sock,void* data,size_t len)
 {
     //return (int) sendfull (sa->sock, data, len);
     int rc = (int) sendfull(sock,(const char*)data,len);
-    //MIG_INFO(USER_LEVEL,"send length %d", rc);
+    MIG_INFO(USER_LEVEL,"send length %d", rc);
     return rc;
 }
 

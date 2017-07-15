@@ -334,7 +334,8 @@ int core_main(int agrc,char* argv[]){
 	MIG_INFO(USER_LEVEL,"init clock success");
 
 
-	if (netaio_init(srvt)<0){
+	
+    if (netaio_init(srvt)<0){
 		MIG_ERROR(USER_LEVEL,"initialization of netaio init error");
 		goto rel_net;
 	}
@@ -363,6 +364,7 @@ int core_main(int agrc,char* argv[]){
     }
 
 
+    plugins_call_handler_load(srvt);
 	if (network_start(srvt)<0){
 		MIG_ERROR(USER_LEVEL,"start network error");
 		goto rel_netstop;

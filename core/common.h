@@ -298,7 +298,9 @@ struct plugin {
 
 	void*     (*init)(struct server* srv);
 
-	handler_t (*clean_up)(struct server* svr,void* pd_t);
+	handler_t (*handler_load)(struct server* srv);
+
+    handler_t (*clean_up)(struct server* svr,void* pd_t);
 
 	handler_t (*handler_init_time)(struct server* srv);
 

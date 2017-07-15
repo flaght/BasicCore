@@ -15,6 +15,7 @@ int plugins_load(struct server* srv);
 void plugins_free(struct server* srv);
 
 handler_t plugins_call_init(struct server* srv);
+handler_t plugins_call_handler_load(struct server* srv);
 handler_t plugins_call_clean_up(struct server* srv,void* pd_t);
 handler_t plugins_call_handler_read(struct server *srv,int fd,void *pd,int len);
 handler_t plugins_call_handler_read_srv(struct server *srv,int fd,void *pd,int len);
