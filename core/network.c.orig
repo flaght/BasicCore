@@ -611,17 +611,13 @@ void sockbase_schedule_unlock(struct psock_sched *sched) {
 int sockbase_receive(struct psock_conn *conn) {
     int rc, err = 0;
     for (;;) {
-#if !defined (PIPE_WORK)
         rc = recv(conn->psc_sock, conn->psc_rx_buffer, conn->psc_rx_size, 0);
-#else
-        rc = read(conn->psc_sock, conn->psc_rx_buffer, conn->psc_rx_size);
-#endif
         if (rc > 0) {
             conn->psc_rx_started = 1;
             conn->psc_rx_deadline = time(NULL) + 5;
             err = rc;
-            MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
-                    conn->psc_rx_size, conn->psc_rx_buffer, rc);
+            //MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
+            //        conn->psc_rx_size, conn->psc_rx_buffer, rc);
         } else if (rc <= 0) {
             if (rc < 0)
                 err = -errno;
@@ -982,7 +978,7 @@ struct sock_adapter* create_connect_socket(struct server* srv, const char* host,
 struct sock_adapter* create_out_pipe(struct server* srv, int sock) {
     int opt, rc;
     struct sock_adapter * conn;
-    struct psock_conn *sc;
+    struct psock_conn *sc; 
     opt = fcntl(sock, F_GETFL, 0);
     rc = fcntl(sock, F_SETFL, opt | O_NONBLOCK);
     if (rc != 0)  {
@@ -1049,7 +1045,7 @@ struct sock_adapter* create_out_pipe(struct server* srv, int sock) {
         close(sock);
         return NULL;
     }
-
+    
     list_add_tail(&conn->list, sock_adapter_sock2hash(srv, sock));
     return conn;
 }
@@ -1058,7 +1054,7 @@ struct sock_adapter* create_out_pipe(struct server* srv, int sock) {
 struct sock_adapter* create_in_pipe(struct server* srv, int sock) {
     int opt, rc;
     struct sock_adapter * conn;
-    struct psock_conn *sc;
+    struct psock_conn *sc; 
     opt = fcntl(sock, F_GETFL, 0);
     rc = fcntl(sock, F_SETFL, opt | O_NONBLOCK);
     if (rc != 0)  {
@@ -1077,7 +1073,7 @@ struct sock_adapter* create_in_pipe(struct server* srv, int sock) {
     conn->type = ACCEPT;
     conn->sock = sock;
     conn->flags = EV_READ | EV_PERSIST;
-    /*event_set(&conn->ev, sock, EV_READ | EV_PERSIST, server_write_buffer, conn);
+    event_set(&conn->ev, sock, EV_READ | EV_PERSIST, server_write_buffer, conn);
     rc = event_add(&conn->ev, NULL);
     if (rc != 0) {
         MIG_ERROR(USER_LEVEL, "event_add failed (%s)\n", strerror(errno));
@@ -1085,8 +1081,8 @@ struct sock_adapter* create_in_pipe(struct server* srv, int sock) {
         free_sock_adapter(conn, srv);
         close(sock);
         return NULL;
-    }*/
-
+    }
+    
     list_add_tail(&conn->list, sock_adapter_sock2hash(srv, sock));
     return conn;
 }
@@ -1132,7 +1128,6 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         assert(port>0&&port<65536);
 #endif
 
-#if defined (NET_WORK) || defined (UNIX_WORK)
         sa = alloc_sock_adapter(srv);
         if (sa == NULL) {
             MIG_ERROR(USER_LEVEL, "alloc sock adapter failed");
@@ -1146,7 +1141,7 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         sa->type = 0;
         sock = create_socket();
         opt = 1;
-#endif
+
 #if defined (NET_WORK)
         sai.sin_family = AF_INET;
         sai.sin_port = htons(port);
@@ -1163,7 +1158,7 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         memset(sai.sun_path, '\0', sizeof(sai.sun_path));
         strncpy(sai.sun_path, path, strlen(path));
 #endif
-#if defined (NET_WORK) || defined (UNIX_WORK)
+
         rc = bind(sock, (const struct sockaddr *) &sai, sizeof(sai));
         if (rc != 0) {
             MIG_ERROR(USER_LEVEL, "unable bind socket:%s\n", strerror(errno));
@@ -1180,7 +1175,7 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
             free_sock_adapter(sa, srv);
             return NULL;
         }
-#endif
+
 #if defined (UNIX_WORK)
         int err = chmod(path, 0777);
         if (err < 0) {
@@ -1188,7 +1183,6 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         }
 #endif
 
-#if defined(NET_WORK) || defined (UNIX_WORK)
         //set socket no-block
         opt = fcntl(sock, F_GETFL, 0);
         rc = fcntl(sock, F_SETFL, opt | O_NONBLOCK);
@@ -1204,7 +1198,6 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         list_add_tail(&sa->list, sock_adapter_sock2hash(srv, sock));
         return sa;
     }
-#endif
 
     void server_accept(int fd, short which, void *arg) {
         struct sockaddr_in addr;

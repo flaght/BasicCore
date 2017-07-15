@@ -16,19 +16,20 @@
 //read MACRO
 // NET_WORK 网络通讯
 // UNIX_WORK 进程通讯
+// PIPE_WORK 管道通讯
 // TEXT_PTL 文本协议
 // BRY_PTL 二进制协议
 
-#define NET_WORK 1
+#define PIPE_WORK 1
 #define BRY_PTL 1
 
-#if !defined (NET_WORK) && !defined (UNIX_WORK)
-#define NET_WORK 1
+/*#if !defined (NET_WORK) && !defined (UNIX_WORK)
+#define PIPE_WORK 1
 #endif
 
 #if !defined (TEXT_PTL) && !defined (BRY_PTL)
 #define BRY_PTL 1
-#endif
+#endif*/
 
 
 typedef enum handler_t{
@@ -295,9 +296,11 @@ struct plugin {
 
 	void*     data;    
 
-	void*     (*init)();
+	void*     (*init)(struct server* srv);
 
-	handler_t (*clean_up)(struct server* svr,void* pd_t);
+	handler_t (*handler_load)(struct server* srv);
+
+    handler_t (*clean_up)(struct server* svr,void* pd_t);
 
 	handler_t (*handler_init_time)(struct server* srv);
 
@@ -376,6 +379,8 @@ struct server{
 	void (*del_time_task)(struct server* srv,char* id,int opcode);
 
 	int  (*create_reconnects)(struct server *srv);
+
+    int (*set_event_task)(struct server* srv, void* data, size_t len);
 };
 
 

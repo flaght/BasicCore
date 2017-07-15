@@ -10,7 +10,7 @@
 
 # Where to find user code.
 
-SO_DIR = ./
+SO_DIR = ../../../ChaosTransaction/ironman/bin/plugins/core/
 
 THIRD_PATH = ./../../mylib
 
@@ -21,7 +21,7 @@ LINK_PATHS = -L./
 CPPFLAGS += -g -Wextra -isystem -shared -fPIC
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DNET_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
+CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DPIPE_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
 
 #CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DUNIX_WORK -DTEXT_PTL -D_REENTRANT -D_GNU_SOURCE
 
@@ -97,6 +97,9 @@ thread.o : ./thread.c ./thread.h
 network.o : ./network.c ./network.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./network.c $(INCLUDE_PATHS)
 
+netaio.o : ./netaio.c ./netaio.h
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./netaio.c $(INCLUDE_PATHS)
+
 native_library.o : ./native_library.c ./native_library.h
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c ./native_library.c $(INCLUDE_PATHS)
 		
@@ -107,7 +110,7 @@ mig_log.o: $(THIRD_PATH)/public/log/mig_log.cc  $(THIRD_PATH)/public/log/mig_log
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c $(THIRD_PATH)/public/log/mig_log.cc $(INCLUDE_PATHS)
 	
 $(PLUGIN) : core.o buffer.o parser_xml.o plugins.o base_thread.o base_threadlock.o\
-	base_threadpool.o thread.o network.o native_library.o clock_task.o mig_log.o\
+	base_threadpool.o thread.o network.o netaio.o native_library.o clock_task.o mig_log.o\
 	/usr/local/lib/libbreakpad_client.a /usr/lib64/libexpat.a /usr/lib/libevent.a
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $(LINK_PATHS) -lpthread -lrt -lpthread -ldl \
 	$^ -o $@

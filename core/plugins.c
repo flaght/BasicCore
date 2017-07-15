@@ -23,6 +23,7 @@ typedef enum {
     
     PLUGIN_FUNC_UNSET,
     PLUGIN_FUNC_HANDLER_INIT,
+    PLUGIN_FUNC_LOAD,
     PLUGIN_FUNC_HANDLER_CLEAN_UP,
     PLUGIN_FUNC_HANDLER_READ,
     PLUGIN_FUNC_HANDLER_READ_SRV,
@@ -126,36 +127,66 @@ handler_t plugins_call_handler_init_time(struct server *srv){
          }
      }
     return HANDLER_GO_ON;
-}  
+} 
 
-// #define PLUGIN_TO_SLOT(x,y)\
-//     handler_t plugins_call_##y(struct server* srv) {\
-//         struct plugin** slot;\
-//         int j;\
-//         struct plugin* p;\
-//         handler_t r;\
-//         if(!srv->plugins_slot) return HANDLER_GO_ON;\
-//         slot = ((struct plugin***)srv->plugins_slot)[x];\
-//         if(!slot) return HANDLER_GO_ON;\
-//         for(j=0;j<srv->plugins.used&&slot[j];j++){\
-//             p=slot[j];\
-//             switch(r=(p->y(srv))){\
-//                case HANDLER_GO_ON:\
-//                    break;\
-//                case HANDLER_FINISHED:\
-//                case HANDLER_COMEBACK:\
-//                case HANDLER_WAIT_FOR_EVENT:\
-//                case HANDLER_WAIT_FOR_FD:\
-//                case HANDLER_ERROR:\
-//                    return r;\
-//                default:\
-//                    MIG_ERROR(USER_LEVEL,"%s unkown state:%d\n",p->name->ptr,r);\
-//             }\
-//         }\
-//        return HANDLER_GO_ON;\
-//     }  
+
+
+handler_t plugins_call_handler_load(struct server *srv){
+     struct plugin** slot;
+     int j;
+     struct plugin* p;
+     handler_t r;
+     if(!srv->plugins_slot) return HANDLER_GO_ON;
+     slot = ((struct plugin***)srv->plugins_slot)[PLUGIN_FUNC_LOAD];
+     if(!slot) return HANDLER_GO_ON;
+     for(j=0;j<srv->plugins.used&&slot[j];j++){
+         p=slot[j];
+         switch(r=(p->handler_load(srv))){
+            case HANDLER_GO_ON:
+                break;
+            case HANDLER_FINISHED:
+            case HANDLER_COMEBACK:
+            case HANDLER_WAIT_FOR_EVENT:
+            case HANDLER_WAIT_FOR_FD:
+            case HANDLER_ERROR:
+                return r;
+            default:
+                MIG_ERROR(USER_LEVEL,"%s unkown state:%d\n",p->name->ptr,r);\
+         }
+     }
+    return HANDLER_GO_ON;
+}  
+/*
+#define PLUGIN_TO_SLOT(x,y)\
+   handler_t plugins_call_##y(struct server* srv) {\
+    struct plugin** slot;\
+    int j;\
+    struct plugin* p;\
+    handler_t r;\
+    if(!srv->plugins_slot) return HANDLER_GO_ON;\
+        slot = ((struct plugin***)srv->plugins_slot)[x];\
+        if(!slot) return HANDLER_GO_ON;\
+        for(j=0;j<srv->plugins.used&&slot[j];j++){\
+            p=slot[j];\
+            switch(r=(p->y(srv))){\
+                case HANDLER_GO_ON:\
+                    break;\
+                case HANDLER_FINISHED:\
+                case HANDLER_COMEBACK:\
+                case HANDLER_WAIT_FOR_EVENT:\
+                case HANDLER_WAIT_FOR_FD:\
+                case HANDLER_ERROR:\
+                    return r;\
+                default:\
+                    MIG_ERROR(USER_LEVEL,"%s unkown state:%d\n",p->name->ptr,r);\
+            }\
+        }\
+        return HANDLER_GO_ON;\
+    }  
 // PLUGIN_TO_SLOT(PLUGIN_FUNC_TIME_INIT,handler_init_time);
-// #undef PLUGIN_TO_SLOT
+
+//PLUGIN_TO_SLOT(PLUGIN_FUNC_LOAD, load);
+#undef PLUGIN_TO_SLOT*/
     
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,int fd,void *pd,int len) {\
@@ -454,6 +485,7 @@ handler_t plugins_call_init(struct server* srv){
     }
 
     PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_INIT,init);
+    PLUGIN_TO_SLOT(PLUGIN_FUNC_LOAD,handler_load);
     PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_CLEAN_UP,clean_up);
     PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_READ,handler_read);
     PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_READ_SRV,handler_read_srv);
@@ -468,7 +500,7 @@ handler_t plugins_call_init(struct server* srv){
 
         if(p->init) {
             
-            if(NULL==(p->data=p->init())){
+            if(NULL==(p->data=p->init(srv))){
                 
                //SINA_ERROR(SYSTEM_LEVEL,"plugin-init failed for module %s",p->id);
                return HANDLER_ERROR; 
