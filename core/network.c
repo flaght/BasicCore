@@ -620,8 +620,8 @@ int sockbase_receive(struct psock_conn *conn) {
             conn->psc_rx_started = 1;
             conn->psc_rx_deadline = time(NULL) + 5;
             err = rc;
-            MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
-                    conn->psc_rx_size, conn->psc_rx_buffer, rc);
+            //MIG_DEBUG(USER_LEVEL, "conn->psc_rx_size[%d] psc_rx_buffer [%s] rc[%d]",
+              //      conn->psc_rx_size, conn->psc_rx_buffer, rc);
         } else if (rc <= 0) {
             if (rc < 0)
                 err = -errno;

@@ -18,7 +18,7 @@ THIRD_PATH = ./../../mylib
 LINK_PATHS = -L./
 
 # Flags passed to the preprocessor.
-CPPFLAGS += -g -Wextra -isystem -shared -fPIC
+CPPFLAGS += -g -Wextra -isystem -shared -Wno-unused-parameter -fPIC
 
 # Flags passed to the C++ compiler.
 CXXFLAGS += -g  -Wextra -pthread -shared -fPIC -DHEAD_SHORT -D_REENTRANT -DDEBUG -D_DEBUG -DPIPE_WORK -DBRY_PTL -D_REENTRANT -D_GNU_SOURCE
