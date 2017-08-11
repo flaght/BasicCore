@@ -839,7 +839,7 @@ static int create_socket_temp() {
 }
 
 static int create_socket() {
-    int sock;
+    int sock = 0;
     struct sockaddr_in sai;
     int rc, opt;
 #if defined (NET_WORK)

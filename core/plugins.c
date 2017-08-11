@@ -75,7 +75,7 @@ static void plugin_free(struct plugin *p)
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,void *pd) {\
         struct plugin** slot;\
-        int j;\
+        size_t j;\
         struct plugin* p;\
         handler_t r;\
         if(!srv->plugins_slot) return HANDLER_GO_ON;\
@@ -105,7 +105,7 @@ PLUGIN_TO_SLOT(PLUGIN_FUNC_HANDLER_CLEAN_UP,clean_up);
 
 handler_t plugins_call_handler_init_time(struct server *srv){
      struct plugin** slot;
-     int j;
+     size_t j;
      struct plugin* p;
      handler_t r;
      if(!srv->plugins_slot) return HANDLER_GO_ON;
@@ -133,7 +133,7 @@ handler_t plugins_call_handler_init_time(struct server *srv){
 
 handler_t plugins_call_handler_load(struct server *srv){
      struct plugin** slot;
-     int j;
+     size_t j;
      struct plugin* p;
      handler_t r;
      if(!srv->plugins_slot) return HANDLER_GO_ON;
@@ -191,7 +191,7 @@ handler_t plugins_call_handler_load(struct server *srv){
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,int fd,void *pd,int len) {\
         struct plugin** slot;\
-        int j;\
+        size_t j;\
         struct plugin* p;\
         handler_t r;\
         if(!srv->plugins_slot) return HANDLER_GO_ON;\
@@ -227,7 +227,7 @@ PLUGIN_TO_SLOT(PLUGIN_FUNC_TIME_INIT,init_time);
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,int fd) {\
         struct plugin** slot;\
-        int j;\
+        size_t j;\
         struct plugin* p;\
         handler_t r;\
         if(!srv->plugins_slot) return HANDLER_GO_ON;\
@@ -258,7 +258,7 @@ PLUGIN_TO_SLOT(PLUGIN_FUNC_CONNECTION_CLOSE_SRV,connection_close_srv);
 #define PLUGIN_TO_SLOT(x,y)\
 	handler_t plugins_call_##y(struct server* srv,char* id,int opcode,int time){\
 		struct plugin** slot;\
-		int j;\
+		size_t j;\
 		struct plugin* p;\
 		handler_t r;\
 		if(!srv->plugins_slot) return HANDLER_GO_ON;\
@@ -289,7 +289,7 @@ PLUGIN_TO_SLOT(PLUGIN_FUNC_CONNECTION_CLOSE_SRV,connection_close_srv);
 
 handler_t plugins_call_time_msg(struct server* srv,char* id,int opcode,int time){
 	struct plugin** slot;
-	int j;
+	size_t j;
 	struct plugin* p;
 	handler_t r;
 	if(!srv->plugins_slot) return HANDLER_GO_ON;
@@ -319,7 +319,7 @@ handler_t plugins_call_time_msg(struct server* srv,char* id,int opcode,int time)
 #define PLUGIN_TO_SLOT(x,y)\
     handler_t plugins_call_##y(struct server* srv,void* pd) {\
         struct plugin** slot;\
-        int j;\
+        size_t j;\
         struct plugin* p;\
         handler_t r;\
         if(!srv->plugins_slot) return HANDLER_GO_ON;\
@@ -371,7 +371,7 @@ static int plugins_register(struct server* srv,struct plugin* p)
 
 struct plugin *get_pluginst_info(struct server *srv,const char* id)
 {
-    int j;
+    size_t j;
     struct plugin *p;
     struct plugin**ps;
     ps = (struct plugin**)srv->plugins.ptr;
@@ -458,7 +458,7 @@ handler_t plugins_call_init(struct server* srv){
 
     struct plugin** ps;
     struct plugin** slot;
-    int i,j;
+    size_t i,j;
     struct plugin* p;
     struct list_head* tmp;
     struct plugin_desc *pl_desc;
