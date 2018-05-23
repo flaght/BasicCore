@@ -348,6 +348,7 @@ int core_main(int agrc,char* argv[]){
 
 	srvt->state = SERVER_INIT_NET;
 	MIG_INFO(USER_LEVEL,"register event success");
+    
 
 	if (network_register_fdevents(srvt)){
 		MIG_ERROR(USER_LEVEL,"register network event error");
@@ -365,7 +366,7 @@ int core_main(int agrc,char* argv[]){
 
 
     plugins_call_handler_load(srvt);
-	if (network_start(srvt)<0){
+    if (network_start(srvt)<0){
 		MIG_ERROR(USER_LEVEL,"start network error");
 		goto rel_netstop;
 	}

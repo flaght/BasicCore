@@ -135,13 +135,16 @@ struct sock_adapter *find_sock_adapter(int sock, struct server *srv) {
 void destroy_sock_adapter(struct sock_adapter *sa, struct server *srv) {
 
     //Originate from sock_conn
-    event_del(&sa->ev);
+    
+   event_del(&sa->ev);
+    
     list_del(&sa->list);
 
     if (sa->sock != -1) {
         close(sa->sock);
         sa->sock = -1;
     }
+    
     if (sa->type == CONNECT)
         buffer_free(sa->ip);
     free_sock_adapter(sa, srv);
@@ -1396,11 +1399,11 @@ struct sock_adapter *create_listen_socket(struct server* srv,int port) {
         event_base_free(srv->base);
 
         destroy_sock_adapter_table(srv);
-
         if (srv->connect_pool) {
             free(srv->connect_pool);
             srv->connect_pool = NULL;
         }
+
 
         return 0;
     }
