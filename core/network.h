@@ -6,82 +6,81 @@
 #include"linuxlist.h"
 struct server;
 
-struct packet_buffer{
-	
-    struct buffer *buf;
-    
-    int sock;
-    
-    int type;
+struct packet_buffer {
 
-    struct server* srv;
+  struct buffer *buf;
+
+  int sock;
+
+  int type;
+
+  struct server* srv;
 };
 
-struct echo_block{
-    struct list_head list;
+struct echo_block {
+  struct list_head list;
 
-    char *address;
+  char *address;
 
-    int length;
+  int length;
 
-    int refcount;
+  int refcount;
 };
 
 struct echo_conn;
-struct echo_packet{
+struct echo_packet {
 
-    struct list_head list;
-    
-    union{
-        
-        struct{
-            struct list_head blocks;
-            int head_position;
-            int tail_offset;
-        }blocks;
+  struct list_head list;
 
-        struct{
-            struct echo_block *one_block;
-            int  offset;
-            int  length;
-        }one_block;
-    }u; 
-    int  block_count;
-    int  dirty;
-    struct server* srv;
-    int sock;
-    int type;
-    struct echo_conn *conn;
+  union {
+
+    struct {
+      struct list_head blocks;
+      int head_position;
+      int tail_offset;
+    } blocks;
+
+    struct {
+      struct echo_block *one_block;
+      int offset;
+      int length;
+    } one_block;
+  } u;
+  int block_count;
+  int dirty;
+  struct server* srv;
+  int sock;
+  int type;
+  struct echo_conn *conn;
 };
 
+struct echo_conn {
 
-struct echo_conn{
+  struct list_head list;
 
-    struct list_head list;
-   
-    struct echo_block *block;
-  
-    int prev_packet_offset;
+  struct echo_block *block;
 
-    int offset;
+  int prev_packet_offset;
 
-    struct buffer* ip;
-    
-    int port;
-    
-    int index;
-        
-    struct echo_packet *packet;
+  int offset;
 
-    struct list_head pending_packets;
+  struct buffer* ip;
 
-    struct list_head inflight_packets;
+  int port;
 
-    void *privates;
+  int index;
 
-    struct server *srv; 
+  struct echo_packet *packet;
 
-    pthread_mutex_t lock;
+  struct list_head pending_packets;
+
+  struct list_head inflight_packets;
+
+  void *privates;
+
+  struct server *srv;
+
+  pthread_mutex_t lock;
 };
 
 int network_init(struct server *srv);
@@ -94,9 +93,8 @@ int create_connects(struct server *srv);
 
 int network_stop(struct server *srv);
 
-int register_event(struct server *srv,int fd,short events);
+int register_event(struct server *srv, int fd, short events);
 
 int create_reconnects(struct server *srv);
-
 
 #endif

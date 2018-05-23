@@ -11,6 +11,6 @@ libhandle load_native_library(const char* library_path);
 
 void unload_native_library(libhandle library);
 
-void* get_function_pointer(libhandle library,const char* name);
+void* get_function_pointer(libhandle library, const char* name);
 
 #endif

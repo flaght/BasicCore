@@ -6,5 +6,4 @@
 struct server;
 int init_threadpool(struct server *srv);
 
-
 int stop_threadpool(struct server *srv);
