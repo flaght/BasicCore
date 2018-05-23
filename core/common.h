@@ -20,7 +20,7 @@
 // TEXT_PTL 文本协议
 // BRY_PTL 二进制协议
 
-#define NET_WORK 1
+#define PIPE_WORK 1
 #define BRY_PTL 1
 
 /*#if !defined (NET_WORK) && !defined (UNIX_WORK)
